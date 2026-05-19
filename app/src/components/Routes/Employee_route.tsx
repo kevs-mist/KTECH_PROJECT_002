@@ -15,18 +15,20 @@ export default function EmployeeRoute({ children }: { children: React.ReactNode 
     const { user, role, loading: authLoading } = useAuth();
     const router = useRouter();
 
-    useEffect(() => {
-        if (!authLoading) {
-            if (user && role === null) return; // Wait for role check to finish
-            // If not logged in OR logged in but not an employee, kick back to login
-            if (!user || role !== "employee") {
-                router.push("/login");
-            }
-        }
-    }, [user, role, authLoading, router]);
+    // A user is present but role hasn't resolved from server yet — still loading
+    const roleLoading = authLoading || (user !== null && role === null);
 
-    // 1. Loading State
-    if (authLoading) {
+    useEffect(() => {
+        if (roleLoading) return; // Don't act until role is fully known
+
+        // Role is now resolved — redirect if not an employee
+        if (!user || role !== "employee") {
+            router.push("/login");
+        }
+    }, [user, role, roleLoading, router]);
+
+    // 1. Loading State (auth OR role-fetch in flight)
+    if (roleLoading) {
         return (
             <div className="flex items-center justify-center min-h-screen bg-slate-50">
                 <div className="flex flex-col items-center gap-4">

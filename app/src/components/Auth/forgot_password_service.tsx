@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { sendPasswordResetEmail, confirmPasswordReset, verifyPasswordResetCode } from "firebase/auth";
 import { auth } from "../../lib/firebase";
 import { AuthValidator } from "./AuthValidator";
+import { ErrorHandler } from "../../lib/utils/errorHandler";
 
 export default function ForgotPassword() {
     const router = useRouter();
@@ -64,7 +65,7 @@ export default function ForgotPassword() {
             setSuccessMsg(`A password reset link has been sent to ${email}`);
         } catch (err: any) {
             console.warn("Forgot Password Error:", err.message);
-            setError(err.message || "Failed to send reset email.");
+            setError(ErrorHandler.format(err, "Failed to send reset email."));
         } finally {
             setIsLoading(false);
         }
@@ -100,7 +101,7 @@ export default function ForgotPassword() {
 
         } catch (err: any) {
             console.warn("Reset Password Error:", err.message);
-            setError(err.message || "Failed to reset password.");
+            setError(ErrorHandler.format(err, "Failed to reset password."));
         } finally {
             setIsLoading(false);
         }

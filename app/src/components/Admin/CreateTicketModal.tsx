@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { ticketService } from "../../lib/services/ticketService";
 import { employeeService, EmployeeProfile } from "../../lib/services/employeeService";
 import { useAuth } from "../../lib/AuthContext";
+import { ErrorHandler } from "../../lib/utils/errorHandler";
 
 interface CreateTicketModalProps {
     isOpen: boolean;
@@ -67,7 +68,7 @@ export default function CreateTicketModal({ isOpen, onClose, onSuccess }: Create
             });
         } catch (err: any) {
             console.error("Ticket Creation Error:", err);
-            setError(err.message || "Failed to create ticket");
+            setError(ErrorHandler.format(err, "Failed to create ticket."));
         } finally {
             setIsLoading(false);
         }
@@ -100,6 +101,7 @@ export default function CreateTicketModal({ isOpen, onClose, onSuccess }: Create
                             <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Ticket Title</label>
                             <input 
                                 required
+                                minLength={5}
                                 value={formData.title}
                                 onChange={(e) => setFormData({...formData, title: e.target.value})}
                                 placeholder="Brief Issue Summary"
@@ -111,6 +113,7 @@ export default function CreateTicketModal({ isOpen, onClose, onSuccess }: Create
                             <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Description</label>
                             <textarea 
                                 required
+                                minLength={10}
                                 rows={3}
                                 value={formData.description}
                                 onChange={(e) => setFormData({...formData, description: e.target.value})}

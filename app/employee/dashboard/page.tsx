@@ -6,6 +6,7 @@ import { ticketService, Ticket } from "../../src/lib/services/ticketService";
 import { uploadMediaToStorage } from "../../src/lib/storageService";
 import { supabase } from "../../src/lib/supabase";
 import { debounce } from "../../src/lib/utils/debounce";
+import { ErrorHandler } from "../../src/lib/utils/errorHandler";
 
 export default function EmployeeDashboard() {
     const { user, logout } = useAuth();
@@ -69,6 +70,15 @@ export default function EmployeeDashboard() {
         return () => window.removeEventListener('online', handleOnline);
     }, [debouncedFetch]);
 
+    // 5-Second Auto-Refresh Polling Fallback
+    useEffect(() => {
+        if (!user) return;
+        const interval = setInterval(() => {
+            debouncedFetch();
+        }, 5000);
+        return () => clearInterval(interval);
+    }, [user, debouncedFetch]);
+
     const fetchTickets = async () => {
         setIsLoading(true);
         try {
@@ -88,8 +98,9 @@ export default function EmployeeDashboard() {
         try {
             await ticketService.markInProgress(ticket.id!, ticket.version || 1);
             await fetchTickets();
-        } catch (err) {
+        } catch (err: any) {
             console.error("Error marking in progress:", err);
+            alert(ErrorHandler.format(err, "Failed to start work."));
         } finally {
             setIsActionPending(false);
         }
@@ -103,7 +114,7 @@ export default function EmployeeDashboard() {
             await fetchTickets();
         } catch (err: any) {
             console.error("Error accepting ticket:", err);
-            alert(err.message || "Failed to accept ticket.");
+            alert(ErrorHandler.format(err, "Failed to accept ticket."));
         } finally {
             setIsActionPending(false);
         }
@@ -128,15 +139,15 @@ export default function EmployeeDashboard() {
         try {
             const fileName = `tickets/${selectedTicket.id}/${Date.now()}_${selectedFile.name}`;
             const downloadUrl = await uploadMediaToStorage(selectedFile, fileName, (p) => setUploadProgress(p));
-            
+
             await ticketService.resolveTicket(selectedTicket.id, selectedTicket.version || 1, downloadUrl, actionNotes);
-            
+
             await fetchTickets();
             setSelectedTicket(null);
             resetModalState();
         } catch (err: any) {
             console.error("Error resolving ticket:", err);
-            setActionError(err.message || "Failed to resolve ticket.");
+            setActionError(ErrorHandler.format(err, "Failed to resolve ticket."));
         } finally {
             setIsActionLoading(false);
         }
@@ -144,9 +155,13 @@ export default function EmployeeDashboard() {
 
     const handleEscalate = async () => {
         if (!selectedTicket || !selectedTicket.id || isActionLoading) return;
-        
+
         if (!actionNotes.trim()) {
             setActionError("Please provide a reason for escalation in the Notes section.");
+            return;
+        }
+
+        if (!confirm("Are you sure you want to escalate this ticket? This will send it back to the admin for review.")) {
             return;
         }
 
@@ -158,15 +173,15 @@ export default function EmployeeDashboard() {
                 const fileName = `tickets/${selectedTicket.id}/${Date.now()}_escalation_${selectedFile.name}`;
                 downloadUrl = await uploadMediaToStorage(selectedFile, fileName, (p) => setUploadProgress(p));
             }
-            
+
             await ticketService.escalateTicket(selectedTicket.id, selectedTicket.version || 1, downloadUrl, actionNotes);
-            
+
             await fetchTickets();
             setSelectedTicket(null);
             resetModalState();
         } catch (err: any) {
             console.error("Error escalating ticket:", err);
-            setActionError(err.message || "Failed to escalate ticket.");
+            setActionError(ErrorHandler.format(err, "Failed to escalate ticket."));
         } finally {
             setIsActionLoading(false);
         }
@@ -196,7 +211,7 @@ export default function EmployeeDashboard() {
                         <p className="text-xs font-black text-slate-900">{user?.email}</p>
                         <p className="text-[9px] text-emerald-600 uppercase tracking-widest font-black leading-none mt-1 bg-emerald-50 px-2 py-1 rounded-full">Field Engineer</p>
                     </div>
-                    <button 
+                    <button
                         onClick={() => logout()}
                         className="bg-slate-900 hover:bg-black text-white px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shadow-xl shadow-slate-900/10"
                     >
@@ -237,7 +252,7 @@ export default function EmployeeDashboard() {
                             <h2 className="text-xl font-black italic uppercase tracking-tight">Active Assignments</h2>
                             <span className="w-8 h-1 bg-emerald-600 rounded-full"></span>
                         </div>
-                        
+
                         <div className="space-y-4">
                             {myTickets.length === 0 ? (
                                 <div className="bg-white rounded-[2rem] p-16 text-center border-2 border-dashed border-slate-200">
@@ -248,7 +263,7 @@ export default function EmployeeDashboard() {
                                     <div key={ticket.id} className="bg-white border border-slate-200/60 rounded-[2rem] p-6 md:p-8 shadow-sm hover:shadow-2xl hover:shadow-emerald-500/10 hover:-translate-y-1 transition-all duration-300 group relative overflow-hidden">
                                         {/* Status Indicator Bar */}
                                         <div className={`absolute top-0 left-0 w-full h-1.5 transition-colors duration-300 ${ticket.status === 'in_progress' ? 'bg-gradient-to-r from-emerald-400 to-teal-500' : 'bg-gradient-to-r from-amber-400 to-orange-500'}`}></div>
-                                        
+
                                         <div className="flex justify-between items-start mb-6 pt-2">
                                             <div className="space-y-1.5">
                                                 <div className="flex items-center gap-2">
@@ -270,25 +285,37 @@ export default function EmployeeDashboard() {
                                                 <span className="text-[9px] font-black uppercase tracking-widest bg-amber-500 text-white px-4 py-2 rounded-full shadow-lg shadow-amber-500/20">Assigned</span>
                                             )}
                                         </div>
-                                        
+
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-                                            <div className="flex items-center gap-4 bg-gradient-to-br from-slate-50 to-slate-100/50 p-4 rounded-2xl border border-slate-100 group-hover:border-emerald-100 transition-colors">
-                                                <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center shadow-sm text-slate-400 group-hover:text-emerald-500 group-hover:scale-110 transition-all">
+                                            <div className="flex items-center gap-4 bg-gradient-to-br from-slate-50 to-slate-100/50 p-4 rounded-2xl border border-slate-100 group-hover:border-emerald-100 transition-colors min-w-0">
+                                                <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center shadow-sm text-slate-400 group-hover:text-emerald-500 group-hover:scale-110 transition-all shrink-0">
                                                     <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /></svg>
                                                 </div>
-                                                <div>
+                                                <div className="min-w-0 flex-1">
                                                     <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Atm Location</p>
-                                                    <p className="text-sm font-bold text-slate-800 line-clamp-1">{ticket.atm_location}</p>
+                                                    {ticket.atm_location?.startsWith('http') ? (
+                                                        <a 
+                                                            href={ticket.atm_location} 
+                                                            target="_blank" 
+                                                            rel="noopener noreferrer" 
+                                                            className="text-sm font-bold text-emerald-600 hover:text-emerald-500 hover:underline flex items-center gap-1 transition-colors truncate"
+                                                            onClick={(e) => e.stopPropagation()}
+                                                        >
+                                                            View Map ↗
+                                                        </a>
+                                                    ) : (
+                                                        <p className="text-sm font-bold text-slate-800 truncate">{ticket.atm_location}</p>
+                                                    )}
                                                 </div>
                                             </div>
-                                            <div className="flex gap-4">
-                                                <div className="flex-1 bg-gradient-to-br from-slate-50 to-slate-100/50 p-4 rounded-2xl border border-slate-100 group-hover:border-emerald-100 transition-colors">
+                                            <div className="flex gap-4 min-w-0">
+                                                <div className="flex-1 bg-gradient-to-br from-slate-50 to-slate-100/50 p-4 rounded-2xl border border-slate-100 group-hover:border-emerald-100 transition-colors min-w-0">
                                                     <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Bank</p>
-                                                    <p className="text-sm font-bold text-slate-800 line-clamp-1">{ticket.bank_id}</p>
+                                                    <p className="text-sm font-bold text-slate-800 truncate">{ticket.bank_id}</p>
                                                 </div>
-                                                <div className="flex-1 bg-gradient-to-br from-slate-50 to-slate-100/50 p-4 rounded-2xl border border-slate-100 group-hover:border-emerald-100 transition-colors">
+                                                <div className="flex-1 bg-gradient-to-br from-slate-50 to-slate-100/50 p-4 rounded-2xl border border-slate-100 group-hover:border-emerald-100 transition-colors min-w-0">
                                                     <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Terminal</p>
-                                                    <p className="text-sm font-bold text-slate-800 line-clamp-1">{ticket.atm_id}</p>
+                                                    <p className="text-sm font-bold text-slate-800 truncate">{ticket.atm_id}</p>
                                                 </div>
                                             </div>
                                         </div>
@@ -302,7 +329,7 @@ export default function EmployeeDashboard() {
                                                     ▶ Start Work
                                                 </button>
                                             )}
-                                            <button 
+                                            <button
                                                 onClick={() => setSelectedTicket(ticket)}
                                                 className="flex-1 py-4 rounded-2xl text-[11px] font-black uppercase tracking-widest text-white bg-slate-900 hover:bg-emerald-600 transition-all shadow-lg shadow-slate-900/10 hover:shadow-emerald-600/20 hover:scale-[1.02] active:scale-95"
                                             >
@@ -329,28 +356,69 @@ export default function EmployeeDashboard() {
                                 </div>
                             ) : (
                                 availableTickets.map(ticket => (
-                                    <div key={ticket.id} className="bg-white border border-slate-200/60 rounded-[2rem] p-6 md:p-8 transition-all hover:border-emerald-400 hover:shadow-xl hover:shadow-emerald-500/5 group relative overflow-hidden">
-                                        <div className="absolute right-0 top-0 w-32 h-32 bg-gradient-to-bl from-emerald-100/50 to-transparent rounded-bl-full -z-10 group-hover:scale-110 transition-transform duration-500"></div>
-                                        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-                                            <div className="space-y-3 flex-1">
-                                                <div className="flex flex-wrap items-center gap-3">
-                                                    <p className="text-[10px] font-black text-slate-400 tracking-widest uppercase bg-slate-100 px-2.5 py-1 rounded-md">{ticket.ticket_no}</p>
-                                                    <span className="text-[9px] font-bold text-emerald-600 bg-emerald-50 border border-emerald-100 px-2.5 py-1 rounded-md uppercase tracking-wider">{ticket.issue_type}</span>
+                                    <div key={ticket.id} className="bg-white border border-slate-200/60 rounded-[2rem] p-6 md:p-8 shadow-sm hover:shadow-2xl hover:shadow-emerald-500/10 hover:-translate-y-1 transition-all duration-300 group relative overflow-hidden">
+                                        {/* Status Indicator Bar */}
+                                        <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-blue-400 to-indigo-500"></div>
+
+                                        <div className="flex justify-between items-start mb-6 pt-2">
+                                            <div className="space-y-1.5">
+                                                <div className="flex items-center gap-2">
+                                                    <p className="text-[10px] font-black text-slate-500 tracking-widest uppercase">{ticket.ticket_no}</p>
+                                                    <span className="text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider bg-blue-50 text-blue-600">
+                                                        {ticket.issue_type}
+                                                    </span>
                                                 </div>
-                                                <h4 className="text-xl font-black text-slate-800 leading-tight group-hover:text-emerald-700 transition-colors">{ticket.title}</h4>
-                                                <div className="flex items-center gap-2 text-[11px] font-semibold text-slate-500">
-                                                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
-                                                    {ticket.bank_id} 
-                                                    <span className="text-slate-300">•</span>
-                                                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /></svg>
-                                                    {ticket.atm_location}
+                                                <h4 className="text-xl md:text-2xl font-black text-slate-900 leading-tight group-hover:text-emerald-700 transition-colors">{ticket.title}</h4>
+                                            </div>
+                                            <span className="text-[9px] font-black uppercase tracking-widest bg-blue-500 text-white px-4 py-2 rounded-full shadow-lg shadow-blue-500/20">Available</span>
+                                        </div>
+
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+                                            <div className="flex items-center gap-4 bg-gradient-to-br from-slate-50 to-slate-100/50 p-4 rounded-2xl border border-slate-100 group-hover:border-emerald-100 transition-colors min-w-0">
+                                                <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center shadow-sm text-slate-400 group-hover:text-emerald-500 group-hover:scale-110 transition-all shrink-0">
+                                                    <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /></svg>
+                                                </div>
+                                                <div className="min-w-0 flex-1">
+                                                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Atm Location</p>
+                                                    {ticket.atm_location?.startsWith('http') ? (
+                                                        <a 
+                                                            href={ticket.atm_location} 
+                                                            target="_blank" 
+                                                            rel="noopener noreferrer" 
+                                                            className="text-sm font-bold text-emerald-600 hover:text-emerald-500 hover:underline flex items-center gap-1 transition-colors truncate"
+                                                            onClick={(e) => e.stopPropagation()}
+                                                        >
+                                                            View Map ↗
+                                                        </a>
+                                                    ) : (
+                                                        <p className="text-sm font-bold text-slate-800 truncate">{ticket.atm_location}</p>
+                                                    )}
                                                 </div>
                                             </div>
-                                            <button 
+                                            <div className="flex gap-4 min-w-0">
+                                                <div className="flex-1 bg-gradient-to-br from-slate-50 to-slate-100/50 p-4 rounded-2xl border border-slate-100 group-hover:border-emerald-100 transition-colors min-w-0">
+                                                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Bank</p>
+                                                    <p className="text-sm font-bold text-slate-800 truncate">{ticket.bank_id}</p>
+                                                </div>
+                                                <div className="flex-1 bg-gradient-to-br from-slate-50 to-slate-100/50 p-4 rounded-2xl border border-slate-100 group-hover:border-emerald-100 transition-colors min-w-0">
+                                                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Terminal</p>
+                                                    <p className="text-sm font-bold text-slate-800 truncate">{ticket.atm_id}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="flex flex-col sm:flex-row gap-3">
+                                            <button
                                                 onClick={() => handleAccept(ticket)}
-                                                className="w-full md:w-auto text-[11px] font-black uppercase tracking-widest bg-emerald-600 text-white px-8 py-4 rounded-2xl hover:bg-emerald-700 hover:scale-105 active:scale-95 transition-all shadow-lg shadow-emerald-600/30 shrink-0"
+                                                className="flex-1 py-4 rounded-2xl text-[11px] font-black uppercase tracking-widest text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 transition-all hover:scale-[1.02] active:scale-95"
                                             >
-                                                Accept Post
+                                                ✓ Claim
+                                            </button>
+                                            <button 
+                                                onClick={() => setSelectedTicket(ticket)}
+                                                className="flex-1 py-4 rounded-2xl text-[11px] font-black uppercase tracking-widest text-white bg-slate-900 hover:bg-emerald-600 transition-all shadow-lg shadow-slate-900/10 hover:shadow-emerald-600/20 hover:scale-[1.02] active:scale-95"
+                                            >
+                                                View Details
                                             </button>
                                         </div>
                                     </div>
@@ -402,10 +470,21 @@ export default function EmployeeDashboard() {
                                                         <span className="text-[9px] font-black px-2 py-0.5 bg-emerald-50 text-emerald-600 rounded uppercase">{ticket.issue_type}</span>
                                                     </div>
                                                 </td>
-                                                <td className="px-8 py-5">
-                                                    <div className="flex items-center gap-2 text-xs font-semibold text-slate-500">
-                                                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /></svg>
-                                                        {ticket.atm_location}
+                                                <td className="px-8 py-5 max-w-[200px]">
+                                                    <div className="flex items-center gap-2 text-xs font-semibold text-slate-500 min-w-0">
+                                                        <svg className="w-3 h-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /></svg>
+                                                        {ticket.atm_location?.startsWith('http') ? (
+                                                            <a 
+                                                                href={ticket.atm_location} 
+                                                                target="_blank" 
+                                                                rel="noopener noreferrer" 
+                                                                className="text-emerald-600 hover:underline truncate"
+                                                            >
+                                                                View Map ↗
+                                                            </a>
+                                                        ) : (
+                                                            <span className="truncate">{ticket.atm_location}</span>
+                                                        )}
                                                     </div>
                                                 </td>
                                                 <td className="px-8 py-5">
@@ -415,7 +494,7 @@ export default function EmployeeDashboard() {
                                                     <p className="text-xs font-bold text-slate-400">{new Date(ticket.updated_at || ticket.created_at || '').toLocaleDateString()}</p>
                                                 </td>
                                                 <td className="px-8 py-5">
-                                                    <button 
+                                                    <button
                                                         onClick={() => setSelectedTicket(ticket)}
                                                         className="p-2 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-all"
                                                         title="View Evidence"
@@ -449,8 +528,8 @@ export default function EmployeeDashboard() {
                                 <div className="bg-white/10 backdrop-blur-md p-4 rounded-xl border border-white/10">
                                     <p className="text-[9px] font-black text-emerald-300 uppercase tracking-widest mb-1">Navigation Target</p>
                                     <p className="text-sm font-bold leading-snug truncate">{selectedTicket.atm_location}</p>
-                                    <a 
-                                        href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(selectedTicket.atm_location)}`} 
+                                    <a
+                                        href={selectedTicket.atm_location?.startsWith('http') ? selectedTicket.atm_location : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(selectedTicket.atm_location)}`}
                                         target="_blank"
                                         rel="noopener noreferrer"
                                         className="inline-block mt-3 text-[10px] font-black uppercase bg-white text-emerald-900 px-4 py-2 rounded-xl hover:bg-emerald-50 transition-colors"
@@ -473,7 +552,7 @@ export default function EmployeeDashboard() {
                                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
                                 </div>
                                 <h3 className="text-3xl font-black text-slate-900 leading-tight mb-6 pr-8">{selectedTicket.title}</h3>
-                                
+
                                 <div className="bg-slate-50 p-5 rounded-3xl border border-slate-100 mb-6 relative overflow-hidden">
                                     <div className="absolute top-0 left-0 w-1 h-full bg-slate-300"></div>
                                     <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-2">Engineer Briefing</p>
@@ -500,9 +579,9 @@ export default function EmployeeDashboard() {
                                             <label className="cursor-pointer group flex items-center justify-center gap-2 bg-white hover:bg-emerald-50 border-2 border-dashed border-slate-200 hover:border-emerald-400 text-slate-500 px-6 py-4 rounded-2xl transition-all w-full sm:w-auto min-w-[200px]">
                                                 <svg className="w-5 h-5 text-slate-400 group-hover:text-emerald-500 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
                                                 <span className="text-[11px] font-black uppercase tracking-wider group-hover:text-emerald-600 transition-colors">Select Media</span>
-                                                <input 
-                                                    type="file" 
-                                                    className="hidden" 
+                                                <input
+                                                    type="file"
+                                                    className="hidden"
                                                     accept="image/*,video/*"
                                                     capture="environment"
                                                     onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
@@ -522,7 +601,7 @@ export default function EmployeeDashboard() {
                                                 </div>
                                             )}
                                         </div>
-                                        
+
                                         {isActionLoading && uploadProgress > 0 && (
                                             <div className="mt-5 p-4 bg-slate-50 border border-slate-100 rounded-2xl">
                                                 <div className="flex justify-between items-center mb-2">
@@ -564,15 +643,15 @@ export default function EmployeeDashboard() {
                                                 "Resolution / Escalation Notes"
                                             )}
                                         </label>
-                                        <textarea 
+                                        <textarea
                                             className={`w-full bg-slate-50 border rounded-2xl p-4 text-sm outline-none transition-all resize-none shadow-inner ${actionError?.includes("Reason") ? 'border-red-300 ring-2 ring-red-500/20 bg-red-50/30' : 'border-slate-200 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 focus:bg-white'}`}
-                                            rows={4} 
+                                            rows={4}
                                             placeholder="Explain the issue or reason for escalation here for Admin review..."
                                             value={actionNotes}
                                             onChange={(e) => setActionNotes(e.target.value)}
                                             disabled={isActionLoading}
                                         />
-                                        
+
                                         {actionError && !actionError.includes("Reason") && (
                                             <div className="mt-4 p-4 bg-red-50 border border-red-200 text-red-600 rounded-xl text-xs font-bold flex items-start gap-3 shadow-sm">
                                                 <svg className="w-4 h-4 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
@@ -584,7 +663,9 @@ export default function EmployeeDashboard() {
 
                                 {(selectedTicket.status === 're_raised' || selectedTicket.status === 'closed') && selectedTicket.resolution_notes && (
                                     <div className="mt-6 mb-6 p-5 bg-slate-50 rounded-3xl border border-slate-100 animate-in fade-in duration-300">
-                                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">Submitted Notes</p>
+                                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">
+                                            {selectedTicket.status === 're_raised' ? "Escalation Reason" : "Resolution Notes"}
+                                        </p>
                                         <p className="text-slate-700 text-sm leading-relaxed font-medium whitespace-pre-wrap">{selectedTicket.resolution_notes}</p>
                                     </div>
                                 )}
@@ -601,21 +682,53 @@ export default function EmployeeDashboard() {
                                         <p className="text-xs font-black text-emerald-600 uppercase tracking-widest">✓ Ticket Closed</p>
                                         <p className="text-[10px] text-emerald-400 mt-1">This ticket has been resolved and closed.</p>
                                     </div>
+                                ) : selectedTicket.status === 'open' ? (
+                                    <div className="flex-1 flex flex-col gap-3">
+                                        <div className="p-4 bg-blue-50 border border-blue-200 rounded-2xl text-center">
+                                            <p className="text-xs font-black text-blue-700 uppercase tracking-widest">📢 Available Ticket</p>
+                                            <p className="text-[10px] text-blue-600 mt-1">This ticket is currently in the open pool. Claim it to start working on it immediately.</p>
+                                        </div>
+                                        <button 
+                                            onClick={() => handleAccept(selectedTicket)}
+                                            disabled={isActionPending}
+                                            className={`w-full py-4 px-6 rounded-2xl text-[10px] font-black uppercase tracking-widest text-white shadow-xl transition-all ${isActionPending ? 'bg-slate-400' : 'bg-emerald-600 hover:bg-emerald-500 shadow-emerald-600/20'}`}
+                                        >
+                                            {isActionPending ? 'Claiming...' : '✓ Claim'}
+                                        </button>
+                                    </div>
+                                ) : selectedTicket.status === 'assigned' ? (
+                                    <div className="flex-1 flex flex-col gap-3">
+                                        <div className="p-4 bg-amber-50 border border-amber-200 rounded-2xl text-center">
+                                            <p className="text-xs font-black text-amber-700 uppercase tracking-widest">⚠️ Work Not Started</p>
+                                            <p className="text-[10px] text-amber-600 mt-1">You must transition this ticket to In Progress before resolving or escalating it.</p>
+                                        </div>
+                                        <button 
+                                            onClick={() => handleStartWork(selectedTicket)}
+                                            disabled={isActionPending}
+                                            className={`w-full py-4 px-6 rounded-2xl text-[10px] font-black uppercase tracking-widest text-white shadow-xl transition-all ${isActionPending ? 'bg-slate-400' : 'bg-emerald-600 hover:bg-emerald-500 shadow-emerald-600/20'}`}
+                                        >
+                                            {isActionPending ? 'Starting Work...' : '▶ Start Work'}
+                                        </button>
+                                    </div>
                                 ) : (
                                     <>
-                                        <button 
+                                        <button
                                             onClick={handleResolve}
                                             disabled={isActionLoading}
                                             className={`flex-1 py-4 px-6 rounded-2xl text-[10px] font-black uppercase tracking-widest text-white shadow-xl transition-all ${isActionLoading ? 'bg-slate-400' : 'bg-emerald-600 hover:bg-emerald-500 shadow-emerald-600/20'}`}
                                         >
                                             {isActionLoading ? 'Processing...' : 'Mark as Resolved'}
                                         </button>
-                                        <button 
+                                        <button
                                             onClick={handleEscalate}
                                             disabled={isActionLoading}
-                                            className={`py-4 px-6 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${isActionLoading ? 'text-slate-400 bg-slate-100' : 'text-slate-600 bg-slate-100 hover:bg-slate-200 hover:text-slate-900 border border-slate-200'}`}
+                                            className={`py-4 px-6 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                                                isActionLoading 
+                                                ? 'text-slate-400 bg-slate-100' 
+                                                : 'text-rose-600 bg-rose-50 hover:bg-rose-100 border border-rose-100 hover:border-rose-200 shadow-lg shadow-rose-600/5'
+                                            }`}
                                         >
-                                            Escalate Issue
+                                            Escalate Issue ⚠
                                         </button>
                                     </>
                                 )}

@@ -6,8 +6,10 @@ import Link from "next/link";
 import { useAuth } from "../../src/lib/AuthContext";
 import CreateTicketModal from "../../src/components/Admin/CreateTicketModal";
 import { ticketService, Ticket } from "../../src/lib/services/ticketService";
+import { employeeService, EmployeeProfile } from "../../src/lib/services/employeeService";
 import { supabase } from "../../src/lib/supabase";
 import { debounce } from "../../src/lib/utils/debounce";
+import { ErrorHandler } from "../../src/lib/utils/errorHandler";
 
 /**
  * AdminDashboard
@@ -22,6 +24,7 @@ export default function AdminDashboard() {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [stats, setStats] = useState({ total: 0, open: 0, closed: 0, escalated: 0 });
     const [tickets, setTickets] = useState<Ticket[]>([]);
+    const [employees, setEmployees] = useState<EmployeeProfile[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isActionPending, setIsActionPending] = useState(false);
     const [fetchError, setFetchError] = useState<string | null>(null);
@@ -32,12 +35,14 @@ export default function AdminDashboard() {
         try {
             setIsLoading(true);
             setFetchError(null);
-            const [statsData, ticketsData] = await Promise.all([
+            const [statsData, ticketsData, employeesData] = await Promise.all([
                 ticketService.getAdminStats(),
-                ticketService.getAllTickets()
+                ticketService.getAllTickets(),
+                employeeService.getEmployees().catch(() => [])
             ]);
             setStats(statsData);
             setTickets(ticketsData);
+            setEmployees(employeesData);
         } catch (err: any) {
             console.error("Failed to fetch dashboard data", err);
             setFetchError(err.message || "Failed to load tickets.");
@@ -51,12 +56,14 @@ export default function AdminDashboard() {
         () => debounce(async () => {
             if (!user) return;
             try {
-                const [statsData, ticketsData] = await Promise.all([
+                const [statsData, ticketsData, employeesData] = await Promise.all([
                     ticketService.getAdminStats(),
-                    ticketService.getAllTickets()
+                    ticketService.getAllTickets(),
+                    employeeService.getEmployees().catch(() => [])
                 ]);
                 setStats(statsData);
                 setTickets(ticketsData);
+                setEmployees(employeesData);
             } catch (err: any) {
                 console.error("Failed to fetch dashboard data in background", err);
             }
@@ -104,6 +111,15 @@ export default function AdminDashboard() {
         return () => window.removeEventListener('online', handleOnline);
     }, [debouncedFetch]);
 
+    // 5-Second Auto-Refresh Polling Fallback
+    useEffect(() => {
+        if (!user) return;
+        const interval = setInterval(() => {
+            debouncedFetch();
+        }, 5000);
+        return () => clearInterval(interval);
+    }, [user, debouncedFetch]);
+
     const handleLogout = async () => {
         await logout();
         router.push("/login");
@@ -116,10 +132,138 @@ export default function AdminDashboard() {
             await ticketService.adminCloseTicket(ticket.id!, ticket.version || 1, "Closed manually by admin.");
             await fetchStats();
         } catch (err: any) {
-            alert("Failed to close ticket: " + (err.message || "Unknown error"));
+            alert(ErrorHandler.format(err, "Failed to close ticket."));
         } finally {
             setIsActionPending(false);
         }
+    };
+
+    const handleReleaseTicket = async (ticket: Ticket) => {
+        if (isActionPending || !confirm(`Release ticket ${ticket.ticket_no} back to the open pool? This will clear the current assignment and notes.`)) return;
+        setIsActionPending(true);
+        try {
+            await ticketService.adminReleaseTicket(ticket.id!, ticket.version || 1);
+            await fetchStats();
+        } catch (err: any) {
+            alert(ErrorHandler.format(err, "Failed to release ticket."));
+        } finally {
+            setIsActionPending(false);
+        }
+    };
+
+    const getEngineerName = (uid?: string) => {
+        if (!uid) return "Unassigned";
+        const emp = employees.find(e => e.firebase_uid === uid);
+        return emp ? (emp.full_name || 'Unnamed') : "Unassigned";
+    };
+
+    const handleExportExcel = () => {
+        if (tickets.length === 0) {
+            alert("No tickets available to export.");
+            return;
+        }
+
+        const headers = [
+            "Ticket No",
+            "Title",
+            "Description",
+            "Issue Type",
+            "Status",
+            "Priority",
+            "ATM ID",
+            "Bank ID",
+            "ATM Location",
+            "Assigned Engineer",
+            "Created By",
+            "Created At",
+            "Updated At",
+            "Resolution Notes",
+            "Proof Media"
+        ];
+
+        // Format HTML table rows
+        const rowsHtml = tickets.map(ticket => {
+            const engineerName = ticket.assigned_to ? getEngineerName(ticket.assigned_to) : "Unassigned";
+            
+            // Generate inline image or video link
+            let mediaCell = "-";
+            if (ticket.proof_media_url) {
+                if (ticket.proof_media_url.match(/\.(mp4|mov|webm)$/i) || ticket.proof_media_url.includes("video")) {
+                    mediaCell = `<a href="${ticket.proof_media_url}" target="_blank" style="color: #4f46e5; text-decoration: underline; font-weight: bold;">View Video</a>`;
+                } else {
+                    mediaCell = `<img src="${ticket.proof_media_url}" width="100" height="75" style="border: 1px solid #cbd5e1; border-radius: 4px;" alt="Proof" />`;
+                }
+            }
+
+            return `
+                <tr>
+                    <td style="font-family: monospace; font-weight: bold; color: #4f46e5;">${ticket.ticket_no || ""}</td>
+                    <td>${ticket.title || ""}</td>
+                    <td>${ticket.description || ""}</td>
+                    <td>${ticket.issue_type || ""}</td>
+                    <td>${ticket.status || ""}</td>
+                    <td>${ticket.priority || ""}</td>
+                    <td style="font-family: monospace;">${ticket.atm_id || ""}</td>
+                    <td>${ticket.bank_id || ""}</td>
+                    <td>${ticket.atm_location || ""}</td>
+                    <td>${engineerName}</td>
+                    <td>${ticket.created_by || ""}</td>
+                    <td>${ticket.created_at ? new Date(ticket.created_at).toLocaleString() : ""}</td>
+                    <td>${ticket.updated_at ? new Date(ticket.updated_at).toLocaleString() : ""}</td>
+                    <td>${ticket.resolution_notes || ""}</td>
+                    <td style="text-align: center; vertical-align: middle;">${mediaCell}</td>
+                </tr>
+            `;
+        }).join("");
+
+        const htmlContent = `
+            <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+            <head>
+            <!--[if gte mso 9]>
+            <xml>
+             <x:ExcelWorkbook>
+              <x:ExcelWorksheets>
+               <x:ExcelWorksheet>
+                <x:Name>Field CRM Export</x:Name>
+                <x:WorksheetOptions>
+                 <x:DisplayGridlines/>
+                </x:WorksheetOptions>
+               </x:ExcelWorksheet>
+              </x:ExcelWorksheets>
+             </x:ExcelWorkbook>
+            </xml>
+            <![endif]-->
+            <meta http-equiv="content-type" content="text/plain; charset=UTF-8"/>
+            <style>
+              table { border-collapse: collapse; font-family: sans-serif; font-size: 11px; }
+              th { background-color: #4f46e5; color: #ffffff; font-weight: bold; text-align: left; border: 1px solid #cbd5e1; padding: 10px 8px; font-size: 12px; }
+              td { border: 1px solid #e2e8f0; padding: 8px; vertical-align: middle; }
+              tr:nth-child(even) { background-color: #f8fafc; }
+            </style>
+            </head>
+            <body>
+            <table>
+              <thead>
+                <tr>
+                  ${headers.map(h => `<th>${h}</th>`).join("")}
+                </tr>
+              </thead>
+              <tbody>
+                ${rowsHtml}
+              </tbody>
+            </table>
+            </body>
+            </html>
+        `;
+
+        const blob = new Blob([htmlContent], { type: "application/vnd.ms-excel;charset=utf-8;" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.setAttribute("href", url);
+        link.setAttribute("download", `mamas_crm_export_${new Date().toISOString().slice(0, 10)}.xls`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
     };
 
     return (
@@ -201,12 +345,23 @@ export default function AdminDashboard() {
                         <h3 className="text-2xl font-black italic uppercase tracking-tighter">Operational Controls</h3>
                         <p className="text-slate-500 text-[10px] font-black uppercase tracking-[0.2em] mt-1">Live Ticket Management & Deployment</p>
                     </div>
-                    <button 
-                        onClick={() => setIsModalOpen(true)}
-                        className="bg-indigo-600 text-white px-8 py-3.5 rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-indigo-500 transition-all shadow-xl shadow-indigo-600/20"
-                    >
-                        + Create New Ticket
-                    </button>
+                    <div className="flex gap-4">
+                        <button 
+                            onClick={handleExportExcel}
+                            className="bg-white/5 border border-white/10 hover:bg-white/10 text-white px-8 py-3.5 rounded-2xl font-black uppercase text-xs tracking-widest transition-all flex items-center gap-2"
+                        >
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                            </svg>
+                            Export Excel
+                        </button>
+                        <button 
+                            onClick={() => setIsModalOpen(true)}
+                            className="bg-indigo-600 text-white px-8 py-3.5 rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-indigo-500 transition-all shadow-xl shadow-indigo-600/20"
+                        >
+                            + Create New Ticket
+                        </button>
+                    </div>
                 </div>
 
                 {/* Operations Bar: Search & Filters */}
@@ -284,11 +439,13 @@ export default function AdminDashboard() {
                                     .filter(t => {
                                         const matchesStatus = filterStatus === 'all' || t.status === filterStatus;
                                         const search = searchQuery.toLowerCase();
+                                        const engineerName = t.assigned_to ? getEngineerName(t.assigned_to).toLowerCase() : "";
                                         const matchesSearch = !search || 
                                             t.atm_id.toLowerCase().includes(search) || 
                                             t.bank_id.toLowerCase().includes(search) ||
                                             t.title.toLowerCase().includes(search) ||
-                                            (t.ticket_no || '').toLowerCase().includes(search);
+                                            (t.ticket_no || '').toLowerCase().includes(search) ||
+                                            engineerName.includes(search);
                                         return matchesStatus && matchesSearch;
                                     })
                                     .map((ticket) => (
@@ -300,6 +457,12 @@ export default function AdminDashboard() {
                                             <td className="px-8 py-5 max-w-xs">
                                                 <p className="text-sm font-bold text-slate-200">{ticket.title}</p>
                                                 <p className="text-xs text-slate-500 line-clamp-1 mt-0.5">{ticket.description}</p>
+                                                {ticket.assigned_to && (
+                                                    <p className="text-[10px] text-indigo-400 font-black uppercase tracking-widest mt-1.5 flex items-center gap-1.5">
+                                                        <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse"></span>
+                                                        Eng: {getEngineerName(ticket.assigned_to)}
+                                                    </p>
+                                                )}
                                             </td>
                                             <td className="px-8 py-5">
                                                 <p className="text-xs font-bold text-slate-300">{ticket.atm_id}</p>
@@ -325,6 +488,14 @@ export default function AdminDashboard() {
                                                             className="text-[9px] font-black uppercase tracking-widest bg-white/5 hover:bg-emerald-500 hover:text-white border border-white/10 px-3 py-1.5 rounded-lg transition-all shrink-0"
                                                         >
                                                             Close ✓
+                                                        </button>
+                                                    )}
+                                                    {ticket.status === 're_raised' && (
+                                                        <button 
+                                                            onClick={() => handleReleaseTicket(ticket)}
+                                                            className="text-[9px] font-black uppercase tracking-widest bg-amber-500/10 hover:bg-amber-500 text-amber-400 hover:text-white border border-amber-500/20 px-3 py-1.5 rounded-lg transition-all shrink-0"
+                                                        >
+                                                            Release to Pool ↩
                                                         </button>
                                                     )}
                                                     {ticket.proof_media_url ? (

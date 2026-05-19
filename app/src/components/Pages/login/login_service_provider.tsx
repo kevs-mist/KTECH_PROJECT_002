@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { signInWithEmailAndPassword, signOut } from "firebase/auth";
 import { auth } from "../../../lib/firebase"; 
 import { verifyUserRoleAction, verifyAdminOtpAction } from "../../../lib/actions/authActions";
+import { ErrorHandler } from "../../../lib/utils/errorHandler";
 
 export function login_service_provider() {
     const [isLoading, setIsLoading] = useState(false);
@@ -46,8 +47,9 @@ export function login_service_provider() {
             return { success: true, user: firebaseUser };
         } catch (err: any) {
             console.warn("Login Error:", err.message);
-            setError(err.message || "Invalid credentials.");
-            return { success: false, error: err };
+            const friendlyMessage = ErrorHandler.format(err, "Invalid credentials.");
+            setError(friendlyMessage);
+            return { success: false, error: friendlyMessage };
         } finally {
             setIsLoading(false);
         }
@@ -65,8 +67,9 @@ export function login_service_provider() {
             router.push("/admin/dashboard");
             return { success: true };
         } catch (err: any) {
-            setError(err.message);
-            return { success: false, error: err.message };
+            const friendlyMessage = ErrorHandler.format(err, "Verification failed. Please try again.");
+            setError(friendlyMessage);
+            return { success: false, error: friendlyMessage };
         } finally {
             setIsLoading(false);
         }

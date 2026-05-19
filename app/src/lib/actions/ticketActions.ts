@@ -55,7 +55,12 @@ export async function createTicketAction(idToken: string, ticket: Ticket) {
     if (role !== "admin") throw new Error("Unauthorized: Admin access required.");
 
     // Validate and Whitelist fields
-    const validatedData = ticketCreateSchema.parse(ticket);
+    const parseResult = ticketCreateSchema.safeParse(ticket);
+    if (!parseResult.success) {
+        const firstError = parseResult.error.issues[0];
+        throw new Error(`${firstError.message}`);
+    }
+    const validatedData = parseResult.data;
 
     const supabase = createAdminClient();
 
@@ -110,7 +115,7 @@ export async function acceptTicketAction(idToken: string, ticketId: string, curr
         .from("tickets")
         .update({ 
             assigned_to: uid,
-            status: "assigned",
+            status: "in_progress",
             updated_at: new Date().toISOString()
         })
         .eq("id", ticketId)
@@ -313,6 +318,35 @@ export async function assignTicketToEmployeeAction(idToken: string, ticketId: st
 
     if (error || !data) {
         throw new Error("Failed to assign. The ticket may have been updated elsewhere.");
+    }
+    revalidatePath("/", "layout");
+    return data;
+}
+
+/**
+ * Admin releases a ticket back to the open pool (unassigns it, resets media and notes).
+ */
+export async function adminReleaseTicketAction(idToken: string, ticketId: string, currentVersion: number) {
+    const { role } = await verifyUserRoleAction(idToken);
+    if (role !== "admin") throw new Error("Unauthorized: Admin access required.");
+
+    const supabase = createAdminClient();
+    const { data, error } = await supabase
+        .from("tickets")
+        .update({
+            status: "open",
+            assigned_to: null,
+            proof_media_url: null,
+            resolution_notes: null,
+            updated_at: new Date().toISOString()
+        })
+        .eq("id", ticketId)
+        .eq("version", currentVersion)
+        .select()
+        .single();
+
+    if (error || !data) {
+        throw new Error("Failed to release ticket. It may have been updated elsewhere.");
     }
     revalidatePath("/", "layout");
     return data;

@@ -8,7 +8,8 @@ import {
     escalateTicketAction,
     markInProgressAction,
     adminCloseTicketAction,
-    assignTicketToEmployeeAction
+    assignTicketToEmployeeAction,
+    adminReleaseTicketAction
 } from "../actions/ticketActions";
 
 export interface Ticket {
@@ -91,5 +92,10 @@ export const ticketService = {
     async assignToEmployee(ticketId: string, employeeUid: string, currentVersion: number) {
         const token = await this.getIdToken();
         return assignTicketToEmployeeAction(token, ticketId, employeeUid, currentVersion);
+    },
+
+    async adminReleaseTicket(ticketId: string, currentVersion: number) {
+        const token = await this.getIdToken();
+        return adminReleaseTicketAction(token, ticketId, currentVersion);
     }
 };

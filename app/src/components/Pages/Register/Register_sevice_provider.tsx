@@ -3,6 +3,7 @@ import { useState } from "react";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { auth } from "../../../lib/firebase";
 import { supabase } from "../../../lib/supabase";
+import { ErrorHandler } from "../../../lib/utils/errorHandler";
 
 export function register_service_provider() {
     const [isLoading, setIsLoading] = useState(false);
@@ -91,21 +92,9 @@ export function register_service_provider() {
             return { success: true, user, role };
         } catch (err: any) {
             console.error("Registration error:", err);
-            
-            let errorMessage = err.message || "An unexpected error occurred.";
-            
-            if (err.message?.includes("Failed to fetch")) {
-                errorMessage = "Network error: Unable to connect to the database.";
-            } else if (err.code === "auth/email-already-in-use") {
-                errorMessage = "This email is already registered. Please use a different email or log in.";
-            } else if (err.code === "auth/weak-password") {
-                errorMessage = "Password is too weak. Please choose a stronger password.";
-            } else if (err.code === "auth/invalid-email") {
-                errorMessage = "Invalid email address.";
-            }
-            
-            setError(errorMessage);
-            return { success: false, error: errorMessage };
+            const friendlyMessage = ErrorHandler.format(err, "An unexpected error occurred during registration.");
+            setError(friendlyMessage);
+            return { success: false, error: friendlyMessage };
         } finally {
             setIsLoading(false);
         }

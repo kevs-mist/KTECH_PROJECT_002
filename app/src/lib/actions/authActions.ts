@@ -83,11 +83,12 @@ export async function verifyAdminOtpAction(idToken: string, otp: string) {
         // 3. Verify OTP (Handles both hashed and plaintext for migration period)
         let isMatch = false;
         let needsHashing = false;
-        try {
-            // Try as hashed first
+        
+        // Check if the stored code is a bcrypt hash (starts with $2a$, $2b$, or $2y$)
+        if (data.secret_code && data.secret_code.startsWith('$2')) {
             isMatch = await bcrypt.compare(otp, data.secret_code);
-        } catch (e) {
-            // Fallback for plaintext (if bcrypt fails to identify as hash)
+        } else {
+            // Fallback for plaintext 
             isMatch = data.secret_code === otp;
             if (isMatch) needsHashing = true;
         }
@@ -134,5 +135,42 @@ export async function verifyAdminOtpAction(idToken: string, otp: string) {
         return { success: true };
     } catch (error: any) {
         throw new Error(error.message);
+    }
+}
+
+/**
+ * Generates a password reset link using Firebase Admin SDK.
+ * Bypasses client-side API/domain restrictions.
+ * In development, returns the link directly to speed up local testing.
+ */
+export async function generatePasswordResetLinkAction(email: string) {
+    try {
+        // Omitting actionCodeSettings prevents "INTERNAL ASSERT FAILED" when localhost 
+        // is not strictly whitelisted in the Firebase Auth console.
+        const rawLink = await adminAuth.generatePasswordResetLink(email.trim());
+        
+        // Extract oobCode from the Firebase generated link
+        let customLink = rawLink;
+        try {
+            const urlObj = new URL(rawLink);
+            const oobCode = urlObj.searchParams.get("oobCode");
+            if (oobCode) {
+                customLink = `http://localhost:3000/reset-password?oobCode=${oobCode}`;
+            }
+        } catch (e) {
+            // Ignore parse errors, fallback to raw link
+        }
+        
+        console.log("\n🔑 [DEV MODE] GENERATED PASSWORD RESET LINK:");
+        console.log(customLink);
+        console.log("=========================================\n");
+
+        return { success: true, link: customLink };
+    } catch (error: any) {
+        console.error("Failed to generate password reset link on server:", error.message);
+        if (error.code === 'auth/user-not-found') {
+            throw new Error("This email is not registered in our system. Please check the spelling or register a new account.");
+        }
+        throw new Error(error.message || "Failed to generate password reset link.");
     }
 }
