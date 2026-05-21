@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { login_service_provider } from "./login_service_provider";
+import { useLoginServiceProvider } from "./login_service_provider";
 import { AuthValidator } from "../../Auth/AuthValidator";
 
 /**
@@ -11,7 +11,7 @@ import { AuthValidator } from "../../Auth/AuthValidator";
  * Handles both Staff and Admin authentication.
  */
 export default function Login() {
-    const { login, verifyAdminOtp, isLoading, error: serverError } = login_service_provider();
+    const { login, verifyAdminOtp, isLoading, error: serverError } = useLoginServiceProvider();
     
     // Auth States
     const [username, setUsername] = useState("");

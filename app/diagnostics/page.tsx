@@ -1,8 +1,11 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "../src/lib/firebase";
 import { supabase } from "../src/lib/supabase";
+
+type AuthDiagnostics = Record<string, unknown>;
 
 /**
  * ConnectionDiagnostics
@@ -14,6 +17,7 @@ export default function ConnectionDiagnostics() {
     const [supabaseStatus, setSupabaseStatus] = useState<"checking" | "connected" | "error">("checking");
     const [firebaseError, setFirebaseError] = useState<string | null>(null);
     const [supabaseError, setSupabaseError] = useState<string | null>(null);
+    const [authDiagnostics, setAuthDiagnostics] = useState<AuthDiagnostics | null>(null);
 
     useEffect(() => {
         // 1. Test Firebase
@@ -22,9 +26,9 @@ export default function ConnectionDiagnostics() {
                 if (!auth) throw new Error("Firebase Auth object is not initialized.");
                 // A simple check like appConfig exists or auth is ready
                 setFirebaseStatus("connected");
-            } catch (err: any) {
+            } catch (err: unknown) {
                 setFirebaseStatus("error");
-                setFirebaseError(err.message);
+                setFirebaseError(err instanceof Error ? err.message : String(err));
             }
         };
 
@@ -40,14 +44,30 @@ export default function ConnectionDiagnostics() {
                 }
                 
                 setSupabaseStatus("connected");
-            } catch (err: any) {
+            } catch (err: unknown) {
                 setSupabaseStatus("error");
-                setSupabaseError(err.message);
+                setSupabaseError(err instanceof Error ? err.message : String(err));
             }
         };
 
         testFirebase();
         testSupabase();
+
+        const unsubscribe = onAuthStateChanged(auth, async (user) => {
+            if (!user) return;
+
+            try {
+                const token = await user.getIdToken(true);
+                const response = await fetch("/api/auth-diagnostics", {
+                    headers: { Authorization: `Bearer ${token}` },
+                });
+                setAuthDiagnostics(await response.json() as AuthDiagnostics);
+            } catch (err: unknown) {
+                setAuthDiagnostics({ error: err instanceof Error ? err.message : String(err) });
+            }
+        });
+
+        return () => unsubscribe();
     }, []);
 
     const StatusBadge = ({ status, error }: { status: string, error?: string | null }) => {
@@ -106,6 +126,15 @@ export default function ConnectionDiagnostics() {
                         <li>Verify your internet connection</li>
                     </ul>
                 </div>
+
+                {authDiagnostics && (
+                    <div className="mt-6 p-4 bg-slate-50 border border-slate-200 rounded-xl">
+                        <h3 className="text-xs font-bold text-slate-700 uppercase mb-3">Signed-In Auth Diagnostics</h3>
+                        <pre className="text-[10px] text-slate-600 whitespace-pre-wrap break-words font-mono">
+                            {JSON.stringify(authDiagnostics, null, 2)}
+                        </pre>
+                    </div>
+                )}
 
                 <div className="mt-8 text-center text-[10px] text-slate-400">
                     &copy; {new Date().getFullYear()} Connection Diagnostic Utility

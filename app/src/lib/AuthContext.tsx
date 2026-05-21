@@ -41,7 +41,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     setRole(result.role);
                 } catch (err) {
                     console.error("Auth role verification error:", err);
-                    setRole("user");
+                    setUser(null);
+                    setRole(null);
+                    await signOut(auth);
                 }
             } else {
                 setUser(null);

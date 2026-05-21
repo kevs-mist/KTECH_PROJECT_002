@@ -6,7 +6,25 @@ import { auth } from "../../../lib/firebase";
 import { verifyUserRoleAction, verifyAdminOtpAction } from "../../../lib/actions/authActions";
 import { ErrorHandler } from "../../../lib/utils/errorHandler";
 
-export function login_service_provider() {
+function getErrorMessage(error: unknown) {
+    return error instanceof Error ? error.message : String(error);
+}
+
+async function logAuthDiagnostics() {
+    try {
+        const token = await auth.currentUser?.getIdToken(true);
+        if (!token) return;
+
+        const response = await fetch("/api/auth-diagnostics", {
+            headers: { Authorization: `Bearer ${token}` },
+        });
+        console.warn("Auth diagnostics:", await response.json());
+    } catch (diagnosticError) {
+        console.warn("Auth diagnostics request failed:", getErrorMessage(diagnosticError));
+    }
+}
+
+export function useLoginServiceProvider() {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const router = useRouter();
@@ -45,8 +63,10 @@ export function login_service_provider() {
             // Default User Dashboard
             router.push("/dashboard"); 
             return { success: true, user: firebaseUser };
-        } catch (err: any) {
-            console.warn("Login Error:", err.message);
+        } catch (err: unknown) {
+            console.warn("Login Error:", getErrorMessage(err));
+            await logAuthDiagnostics();
+            await signOut(auth);
             const friendlyMessage = ErrorHandler.format(err, "Invalid credentials.");
             setError(friendlyMessage);
             return { success: false, error: friendlyMessage };
@@ -66,7 +86,7 @@ export function login_service_provider() {
 
             router.push("/admin/dashboard");
             return { success: true };
-        } catch (err: any) {
+        } catch (err: unknown) {
             const friendlyMessage = ErrorHandler.format(err, "Verification failed. Please try again.");
             setError(friendlyMessage);
             return { success: false, error: friendlyMessage };
