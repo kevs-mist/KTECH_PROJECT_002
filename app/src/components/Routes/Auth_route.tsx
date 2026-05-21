@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../../lib/AuthContext";
 
@@ -14,13 +14,6 @@ export default function AuthRoute({ children }: { children: React.ReactNode }) {
     const { user, loading } = useAuth();
     const router = useRouter();
 
-    useEffect(() => {
-        if (!loading && !user) {
-            // If no user, redirect to standard login
-            router.push("/login");
-        }
-    }, [user, loading, router]);
-
     if (loading) {
         return (
             <div className="flex items-center justify-center min-h-screen bg-slate-50">
@@ -30,6 +23,8 @@ export default function AuthRoute({ children }: { children: React.ReactNode }) {
     }
 
     if (!user) {
+        // If no user, redirect to standard login
+        router.push("/login");
         return null;
     }
 

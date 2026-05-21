@@ -9,7 +9,7 @@ import { useAuth } from "../../lib/AuthContext";
  * 
  * A Route Guard that strictly protects Admin pages.
  * If the user is an admin, it renders the protected content.
- * If not authenticated or not an admin, redirects to login.
+ * If not authenticated or not an admin, directly routes to the standard login page.
  */
 export default function AdminRoute({ children }: { children: React.ReactNode }) {
     const { user, role, loading: authLoading } = useAuth();

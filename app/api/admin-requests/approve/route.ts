@@ -8,10 +8,6 @@ function getBearerToken(request: Request) {
   return authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
 }
 
-function getErrorMessage(error: unknown) {
-  return error instanceof Error ? error.message : 'Failed to process admin request';
-}
-
 export async function POST(request: Request) {
   try {
     const token = getBearerToken(request);
@@ -89,7 +85,7 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json({ success: true }, { status: 200 });
-  } catch (error: unknown) {
-    return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
