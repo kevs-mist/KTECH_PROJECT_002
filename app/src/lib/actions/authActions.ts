@@ -1,10 +1,13 @@
-"use server";
-
 import { createAdminClient } from "../../../../utils/supabase/admin";
 
 import { adminAuth } from "../../../../utils/firebase/admin";
+import bcrypt from "bcryptjs";
 
 export type UserRole = "admin" | "employee" | "user";
+
+function getErrorMessage(error: unknown) {
+    return error instanceof Error ? error.message : "Unknown server auth error";
+}
 
 /**
  * Verifies a user's role on the server side using their Firebase ID Token.
@@ -44,15 +47,11 @@ export async function verifyUserRoleAction(idToken: string) {
         }
 
         return { role: "user" as const, uid };
-    } catch (error: any) {
-        console.error("Server Action Auth Error:", error.message);
+    } catch (error: unknown) {
+        console.error("Server Auth Error:", getErrorMessage(error));
         throw new Error("Authentication failed. Please ensure you are logged in correctly.");
     }
 }
-
-import bcrypt from "bcryptjs";
-
-// ...
 
 /**
  * Validates the Admin Secret Code (OTP) on the server.
@@ -116,7 +115,7 @@ export async function verifyAdminOtpAction(idToken: string, otp: string) {
         }
 
         // 4. Success -> Reset failed attempts
-        const updates: any = { 
+        const updates: Record<string, string | number | null> = { 
             failed_attempts: 0, 
             locked_until: null, 
             last_access: new Date().toISOString() 
@@ -133,8 +132,8 @@ export async function verifyAdminOtpAction(idToken: string, otp: string) {
             .eq("firebase_uid", uid);
 
         return { success: true };
-    } catch (error: any) {
-        throw new Error(error.message);
+    } catch (error: unknown) {
+        throw new Error(getErrorMessage(error));
     }
 }
 
@@ -157,7 +156,7 @@ export async function generatePasswordResetLinkAction(email: string) {
             if (oobCode) {
                 customLink = `http://localhost:3000/reset-password?oobCode=${oobCode}`;
             }
-        } catch (e) {
+        } catch {
             // Ignore parse errors, fallback to raw link
         }
         
@@ -166,11 +165,11 @@ export async function generatePasswordResetLinkAction(email: string) {
         console.log("=========================================\n");
 
         return { success: true, link: customLink };
-    } catch (error: any) {
-        console.error("Failed to generate password reset link on server:", error.message);
-        if (error.code === 'auth/user-not-found') {
+    } catch (error: unknown) {
+        console.error("Failed to generate password reset link on server:", getErrorMessage(error));
+        if (typeof error === "object" && error !== null && "code" in error && error.code === 'auth/user-not-found') {
             throw new Error("This email is not registered in our system. Please check the spelling or register a new account.");
         }
-        throw new Error(error.message || "Failed to generate password reset link.");
+        throw new Error(getErrorMessage(error) || "Failed to generate password reset link.");
     }
 }

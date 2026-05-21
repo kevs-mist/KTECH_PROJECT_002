@@ -7,6 +7,10 @@ const nextConfig: NextConfig = {
         source: "/((?!api|_next/static|_next/image|favicon.ico).*)",
         headers: [
           {
+            key: "Cache-Control",
+            value: "no-store",
+          },
+          {
             key: "X-Frame-Options",
             value: "DENY",
           },

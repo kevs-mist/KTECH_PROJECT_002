@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { sendPasswordResetEmail, confirmPasswordReset, verifyPasswordResetCode } from "firebase/auth";
 import { auth } from "../src/lib/firebase";
 import { ErrorHandler } from "../src/lib/utils/errorHandler";
-import { generatePasswordResetLinkAction } from "../src/lib/actions/authActions";
 import { AuthValidator } from "../src/components/Auth/AuthValidator";
 
 export default function ResetPasswordPage() {
@@ -23,6 +22,17 @@ export default function ResetPasswordPage() {
     const [message, setMessage] = useState<{ type: "success" | "error", text: string } | null>(null);
     const [devLink, setDevLink] = useState<string | null>(null);
 
+    const generateDevResetLink = async (targetEmail: string) => {
+        const response = await fetch("/api/auth/password-reset-link", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email: targetEmail }),
+        });
+        const data = await response.json();
+        if (!response.ok || data.error) throw new Error(data.error || "Failed to generate reset link.");
+        return data as { success: boolean; link?: string };
+    };
+
     // Detect if we arrived via a password reset link
     useEffect(() => {
         if (typeof window !== "undefined") {
@@ -38,7 +48,7 @@ export default function ResetPasswordPage() {
                         setEmail(verifiedEmail);
                         setMode("reset_password");
                     })
-                    .catch((err) => {
+                    .catch(() => {
                         setMessage({ type: "error", text: "Invalid or expired reset link. Please request a new one." });
                         setMode("send_link");
                     })
@@ -67,24 +77,24 @@ export default function ResetPasswordPage() {
 
             // 2. In development mode, generate a local bypass link
             if (process.env.NODE_ENV === "development") {
-                const res = await generatePasswordResetLinkAction(email.trim());
+                const res = await generateDevResetLink(email.trim());
                 if (res.success && res.link) {
                     setDevLink(res.link);
                 }
             }
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error("Reset error:", err);
             
             // 3. Fallback to Server Action if client-side failed in dev mode
             if (process.env.NODE_ENV === "development") {
                 try {
-                    const res = await generatePasswordResetLinkAction(email.trim());
+                    const res = await generateDevResetLink(email.trim());
                     if (res.success && res.link) {
                         setDevLink(res.link);
                         setMessage({ type: "success", text: "Developer Bypass Activated: Server-side reset link generated successfully!" });
                         return;
                     }
-                } catch (srvErr: any) {
+                } catch (srvErr: unknown) {
                     console.error("Server Action fallback failed:", srvErr);
                 }
             }
@@ -123,8 +133,8 @@ export default function ResetPasswordPage() {
                 router.push("/login");
             }, 2000);
             
-        } catch (err: any) {
-            console.error("Reset Password Error:", err.message);
+        } catch (err: unknown) {
+            console.error("Reset Password Error:", err);
             setMessage({ type: "error", text: ErrorHandler.format(err, "Failed to reset password.") });
         } finally {
             setIsLoading(false);

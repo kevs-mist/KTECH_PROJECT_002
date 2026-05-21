@@ -1,5 +1,3 @@
-"use server";
-
 import { verifyUserRoleAction } from "./authActions";
 import { createAdminClient } from "../../../../utils/supabase/admin";
 import { Ticket } from "../services/ticketService";
