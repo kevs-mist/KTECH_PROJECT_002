@@ -1,4 +1,5 @@
 import { auth } from "../firebase";
+import { parseJsonResponse } from "../apiClient";
 
 export interface Ticket {
     id?: string;
@@ -21,6 +22,13 @@ export interface Ticket {
     version?: number; // For optimistic locking
 }
 
+interface AdminStats {
+    total: number;
+    open: number;
+    closed: number;
+    escalated: number;
+}
+
 export const ticketService = {
     async getIdToken() {
         const token = await auth.currentUser?.getIdToken(true);
@@ -28,7 +36,7 @@ export const ticketService = {
         return token;
     },
 
-    async request(path: string, init: RequestInit = {}) {
+    async request<T>(path: string, init: RequestInit = {}): Promise<T> {
         const token = await this.getIdToken();
         const response = await fetch(path, {
             ...init,
@@ -37,60 +45,58 @@ export const ticketService = {
                 Authorization: `Bearer ${token}`,
             },
         });
-        const data = await response.json();
-        if (!response.ok || data.error) throw new Error(data.error || "Ticket request failed.");
-        return data;
+        return parseJsonResponse<T>(response, path);
     },
 
-    async post(operation: string, payload: Record<string, unknown>) {
-        return this.request("/api/tickets", {
+    async post<T>(operation: string, payload: Record<string, unknown>): Promise<T> {
+        return this.request<T>("/api/tickets", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ operation, ...payload }),
         });
     },
 
-    async createTicket(ticket: Ticket) {
-        return this.post("create", { ticket });
+    async createTicket(ticket: Ticket): Promise<Ticket> {
+        return this.post<Ticket>("create", { ticket });
     },
 
-    async getAllTickets() {
-        return this.request("/api/tickets");
+    async getAllTickets(): Promise<Ticket[]> {
+        return this.request<Ticket[]>("/api/tickets");
     },
 
-    async getEmployeeTickets() {
-        return this.request("/api/tickets");
+    async getEmployeeTickets(): Promise<Ticket[]> {
+        return this.request<Ticket[]>("/api/tickets");
     },
 
-    async getAdminStats() {
-        return this.request("/api/tickets?resource=admin-stats");
+    async getAdminStats(): Promise<AdminStats> {
+        return this.request<AdminStats>("/api/tickets?resource=admin-stats");
     },
 
-    async acceptTicket(ticketId: string, _employeeUid: string, currentVersion: number) {
-        return this.post("accept", { ticketId, currentVersion });
+    async acceptTicket(ticketId: string, _employeeUid: string, currentVersion: number): Promise<Ticket> {
+        return this.post<Ticket>("accept", { ticketId, currentVersion });
     },
 
-    async resolveTicket(ticketId: string, currentVersion: number, proofMediaUrl: string, resolutionNotes?: string) {
-        return this.post("resolve", { ticketId, currentVersion, proofMediaUrl, resolutionNotes });
+    async resolveTicket(ticketId: string, currentVersion: number, proofMediaUrl: string, resolutionNotes?: string): Promise<Ticket> {
+        return this.post<Ticket>("resolve", { ticketId, currentVersion, proofMediaUrl, resolutionNotes });
     },
 
-    async escalateTicket(ticketId: string, currentVersion: number, proofMediaUrl?: string, escalationNotes?: string) {
-        return this.post("escalate", { ticketId, currentVersion, proofMediaUrl, escalationNotes });
+    async escalateTicket(ticketId: string, currentVersion: number, proofMediaUrl?: string, escalationNotes?: string): Promise<Ticket> {
+        return this.post<Ticket>("escalate", { ticketId, currentVersion, proofMediaUrl, escalationNotes });
     },
 
-    async markInProgress(ticketId: string, currentVersion: number) {
-        return this.post("mark-in-progress", { ticketId, currentVersion });
+    async markInProgress(ticketId: string, currentVersion: number): Promise<Ticket> {
+        return this.post<Ticket>("mark-in-progress", { ticketId, currentVersion });
     },
 
-    async adminCloseTicket(ticketId: string, currentVersion: number, adminNotes?: string) {
-        return this.post("admin-close", { ticketId, currentVersion, adminNotes });
+    async adminCloseTicket(ticketId: string, currentVersion: number, adminNotes?: string): Promise<Ticket> {
+        return this.post<Ticket>("admin-close", { ticketId, currentVersion, adminNotes });
     },
 
-    async assignToEmployee(ticketId: string, employeeUid: string, currentVersion: number) {
-        return this.post("assign", { ticketId, employeeUid, currentVersion });
+    async assignToEmployee(ticketId: string, employeeUid: string, currentVersion: number): Promise<Ticket> {
+        return this.post<Ticket>("assign", { ticketId, employeeUid, currentVersion });
     },
 
-    async adminReleaseTicket(ticketId: string, currentVersion: number) {
-        return this.post("admin-release", { ticketId, currentVersion });
+    async adminReleaseTicket(ticketId: string, currentVersion: number): Promise<Ticket> {
+        return this.post<Ticket>("admin-release", { ticketId, currentVersion });
     }
 };

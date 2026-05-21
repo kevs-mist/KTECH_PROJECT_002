@@ -4,6 +4,7 @@ import React, { createContext, useContext, useEffect, useState, ReactNode } from
 import { onAuthStateChanged, User, signOut } from "firebase/auth";
 import { auth } from "./firebase";
 import { employeeService } from "./services/employeeService";
+import { parseJsonResponse } from "./apiClient";
 
 export type UserRole = "admin" | "employee" | "user" | null;
 
@@ -20,11 +21,7 @@ async function fetchUserRole(idToken: string): Promise<UserRole> {
     const response = await fetch("/api/auth/role", {
         headers: { Authorization: `Bearer ${idToken}` },
     });
-    const data = await response.json();
-
-    if (!response.ok || data.error) {
-        throw new Error(data.error || "Unable to verify user role.");
-    }
+    const data = await parseJsonResponse<{ role: UserRole }>(response, "/api/auth/role");
 
     return data.role;
 }

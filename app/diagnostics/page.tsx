@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "../src/lib/firebase";
 import { supabase } from "../src/lib/supabase";
+import { parseJsonResponse } from "../src/lib/apiClient";
 
 type AuthDiagnostics = Record<string, unknown>;
 
@@ -61,7 +62,7 @@ export default function ConnectionDiagnostics() {
                 const response = await fetch("/api/auth-diagnostics", {
                     headers: { Authorization: `Bearer ${token}` },
                 });
-                setAuthDiagnostics(await response.json() as AuthDiagnostics);
+                setAuthDiagnostics(await parseJsonResponse<AuthDiagnostics>(response, "/api/auth-diagnostics"));
             } catch (err: unknown) {
                 setAuthDiagnostics({ error: err instanceof Error ? err.message : String(err) });
             }

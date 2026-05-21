@@ -6,6 +6,7 @@ import { sendPasswordResetEmail, confirmPasswordReset, verifyPasswordResetCode }
 import { auth } from "../src/lib/firebase";
 import { ErrorHandler } from "../src/lib/utils/errorHandler";
 import { AuthValidator } from "../src/components/Auth/AuthValidator";
+import { parseJsonResponse } from "../src/lib/apiClient";
 
 export default function ResetPasswordPage() {
     const router = useRouter();
@@ -28,9 +29,7 @@ export default function ResetPasswordPage() {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ email: targetEmail }),
         });
-        const data = await response.json();
-        if (!response.ok || data.error) throw new Error(data.error || "Failed to generate reset link.");
-        return data as { success: boolean; link?: string };
+        return parseJsonResponse<{ success: boolean; link?: string }>(response, "/api/auth/password-reset-link");
     };
 
     // Detect if we arrived via a password reset link

@@ -1,4 +1,5 @@
 import { auth } from "../firebase";
+import { parseJsonResponse } from "../apiClient";
 
 export interface EmployeeProfile {
     firebase_uid: string;
@@ -21,7 +22,7 @@ export const employeeService = {
         return token;
     },
 
-    async request(path: string, init: RequestInit = {}) {
+    async request<T>(path: string, init: RequestInit = {}): Promise<T> {
         const token = await this.getIdToken();
         const response = await fetch(path, {
             ...init,
@@ -30,17 +31,15 @@ export const employeeService = {
                 Authorization: `Bearer ${token}`,
             },
         });
-        const data = await response.json();
-        if (!response.ok || data.error) throw new Error(data.error || "Employee request failed.");
-        return data;
+        return parseJsonResponse<T>(response, path);
     },
 
     async getEmployees(): Promise<EmployeeProfile[]> {
-        return this.request("/api/employees");
+        return this.request<EmployeeProfile[]>("/api/employees");
     },
 
-    async setOnlineStatus(isOnline: boolean) {
-        return this.request("/api/employees", {
+    async setOnlineStatus(isOnline: boolean): Promise<{ success: boolean }> {
+        return this.request<{ success: boolean }>("/api/employees", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ operation: "online-status", isOnline }),

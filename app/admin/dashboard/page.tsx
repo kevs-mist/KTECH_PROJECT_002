@@ -10,6 +10,7 @@ import { employeeService, EmployeeProfile } from "../../src/lib/services/employe
 import { supabase } from "../../src/lib/supabase";
 import { debounce } from "../../src/lib/utils/debounce";
 import { ErrorHandler } from "../../src/lib/utils/errorHandler";
+import { parseJsonResponse } from "../../src/lib/apiClient";
 
 /**
  * AdminDashboard
@@ -77,8 +78,7 @@ export default function AdminDashboard() {
             const response = await fetch('/api/admin-requests', {
                 headers: { Authorization: `Bearer ${token}` }
             });
-            const data = await response.json();
-            if (data.error) throw new Error(data.error);
+            const data = await parseJsonResponse<{ data?: AdminRequest[] }>(response, "/api/admin-requests");
             setRequests(data.data || []);
         } catch (err: any) {
             setRequestError(err.message);
@@ -207,8 +207,7 @@ export default function AdminDashboard() {
                 },
                 body: JSON.stringify({ requestId, action: 'approve', secretCode: code })
             });
-            const data = await response.json();
-            if (data.error) throw new Error(data.error);
+            await parseJsonResponse(response, "/api/admin-requests/approve");
             
             setRequestSuccess('Admin request approved successfully');
             setShowSecretInput({ ...showSecretInput, [requestId]: false });
@@ -232,8 +231,7 @@ export default function AdminDashboard() {
                 },
                 body: JSON.stringify({ requestId, action: 'reject' })
             });
-            const data = await response.json();
-            if (data.error) throw new Error(data.error);
+            await parseJsonResponse(response, "/api/admin-requests/approve");
             
             setRequestSuccess('Admin request rejected');
             fetchRequests();

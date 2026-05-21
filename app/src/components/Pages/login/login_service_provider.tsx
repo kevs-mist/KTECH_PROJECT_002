@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { signInWithEmailAndPassword, signOut } from "firebase/auth";
 import { auth } from "../../../lib/firebase"; 
 import { ErrorHandler } from "../../../lib/utils/errorHandler";
+import { parseJsonResponse } from "../../../lib/apiClient";
 
 function getErrorMessage(error: unknown) {
     return error instanceof Error ? error.message : String(error);
@@ -17,7 +18,7 @@ async function logAuthDiagnostics() {
         const response = await fetch("/api/auth-diagnostics", {
             headers: { Authorization: `Bearer ${token}` },
         });
-        console.warn("Auth diagnostics:", await response.json());
+        console.warn("Auth diagnostics:", await parseJsonResponse(response, "/api/auth-diagnostics"));
     } catch (diagnosticError) {
         console.warn("Auth diagnostics request failed:", getErrorMessage(diagnosticError));
     }
@@ -27,13 +28,9 @@ async function fetchUserRole(idToken: string) {
     const response = await fetch("/api/auth/role", {
         headers: { Authorization: `Bearer ${idToken}` },
     });
-    const data = await response.json();
+    const data = await parseJsonResponse<{ role: "admin" | "employee" | "user" }>(response, "/api/auth/role");
 
-    if (!response.ok || data.error) {
-        throw new Error(data.error || "Unable to verify user role.");
-    }
-
-    return data.role as "admin" | "employee" | "user";
+    return data.role;
 }
 
 async function verifyAdminOtpWithApi(idToken: string, otp: string) {
@@ -45,13 +42,7 @@ async function verifyAdminOtpWithApi(idToken: string, otp: string) {
         },
         body: JSON.stringify({ otp }),
     });
-    const data = await response.json();
-
-    if (!response.ok || data.error) {
-        throw new Error(data.error || "Verification failed.");
-    }
-
-    return data;
+    return parseJsonResponse(response, "/api/auth/admin-otp");
 }
 
 export function useLoginServiceProvider() {

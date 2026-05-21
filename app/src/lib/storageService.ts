@@ -1,4 +1,5 @@
 import { auth } from "./firebase";
+import { parseJsonResponse } from "./apiClient";
 
 /**
  * Uploads a file to Supabase Storage securely via an API route.
@@ -28,11 +29,7 @@ export async function uploadMediaToStorage(
         headers: { Authorization: `Bearer ${token}` },
         body: formData,
     });
-    const data = await response.json();
-
-    if (!response.ok || data.error) {
-        throw new Error(data.error || "Failed to upload media.");
-    }
+    const data = await parseJsonResponse<{ publicUrl: string }>(response, "/api/storage/upload");
 
     if (onProgress) onProgress(100);
 
