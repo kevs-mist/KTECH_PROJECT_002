@@ -17,10 +17,6 @@ export default function AdminRoute({ children }: { children: React.ReactNode }) 
 
     useEffect(() => {
         if (!authLoading) {
-            // If we have a user but the role isn't loaded yet, wait a bit
-            if (user && role === null) return; 
-
-            // Hard redirect only if we are SURE they aren't an admin
             if (!user || role !== "admin") {
                 router.push("/login");
             }

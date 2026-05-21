@@ -5,23 +5,23 @@ if (!admin.apps.length) {
     const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
     const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
 
-    if (privateKey && clientEmail && projectId) {
-        admin.initializeApp({
-            credential: admin.credential.cert({
-                projectId,
-                clientEmail,
-                privateKey,
-            }),
-        });
-    } else {
-        // Fallback for environment where we might not have the full cert yet
-        // This will allow the app to boot but token verification will fail
-        // with a clear error if attempted.
-        if (process.env.NODE_ENV === 'production') {
-             console.error("Firebase Admin missing credentials in production!");
-        }
-        admin.initializeApp();
+    const missingVars = [
+        !privateKey && "FIREBASE_PRIVATE_KEY",
+        !clientEmail && "FIREBASE_CLIENT_EMAIL",
+        !projectId && "NEXT_PUBLIC_FIREBASE_PROJECT_ID",
+    ].filter(Boolean);
+
+    if (missingVars.length > 0) {
+        throw new Error(`Missing Firebase Admin environment variables: ${missingVars.join(", ")}`);
     }
+
+    admin.initializeApp({
+        credential: admin.credential.cert({
+            projectId,
+            clientEmail,
+            privateKey,
+        }),
+    });
 }
 
 export const adminAuth = admin.auth();
