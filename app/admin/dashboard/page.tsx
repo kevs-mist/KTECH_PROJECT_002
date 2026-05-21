@@ -18,6 +18,14 @@ import { ErrorHandler } from "../../src/lib/utils/errorHandler";
  * `user` to be set before calling getIdToken() — otherwise currentUser is null
  * and every request silently fails with "Unauthorized".
  */
+interface AdminRequest {
+    id: string;
+    firebase_uid: string;
+    email: string;
+    status: string;
+    created_at: string;
+}
+
 export default function AdminDashboard() {
     const { user, loading: authLoading, logout } = useAuth();
     const router = useRouter();
@@ -30,6 +38,14 @@ export default function AdminDashboard() {
     const [fetchError, setFetchError] = useState<string | null>(null);
     const [searchQuery, setSearchQuery] = useState("");
     const [filterStatus, setFilterStatus] = useState("all");
+    
+    // Admin requests state
+    const [requests, setRequests] = useState<AdminRequest[]>([]);
+    const [requestsLoading, setRequestsLoading] = useState(true);
+    const [secretCode, setSecretCode] = useState<{ [key: string]: string }>({});
+    const [showSecretInput, setShowSecretInput] = useState<{ [key: string]: boolean }>({});
+    const [requestError, setRequestError] = useState<string | null>(null);
+    const [requestSuccess, setRequestSuccess] = useState<string | null>(null);
 
     const fetchStats = async () => {
         try {
@@ -48,6 +64,21 @@ export default function AdminDashboard() {
             setFetchError(err.message || "Failed to load tickets.");
         } finally {
             setIsLoading(false);
+        }
+    };
+
+    const fetchRequests = async () => {
+        try {
+            setRequestsLoading(true);
+            setRequestError(null);
+            const response = await fetch('/api/admin-requests');
+            const data = await response.json();
+            if (data.error) throw new Error(data.error);
+            setRequests(data.data || []);
+        } catch (err: any) {
+            setRequestError(err.message);
+        } finally {
+            setRequestsLoading(false);
         }
     };
 
@@ -77,6 +108,7 @@ export default function AdminDashboard() {
     useEffect(() => {
         if (!authLoading && user) {
             fetchStats();
+            fetchRequests();
         } else if (!authLoading && !user) {
             setIsLoading(false);
         }
@@ -148,6 +180,48 @@ export default function AdminDashboard() {
             alert(ErrorHandler.format(err, "Failed to release ticket."));
         } finally {
             setIsActionPending(false);
+        }
+    };
+
+    const handleApproveRequest = async (requestId: string) => {
+        const code = secretCode[requestId];
+        if (!code || code.length < 4) {
+            setRequestError('Please enter a secret code (minimum 4 characters)');
+            return;
+        }
+
+        try {
+            const response = await fetch('/api/admin-requests/approve', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ requestId, action: 'approve', secretCode: code })
+            });
+            const data = await response.json();
+            if (data.error) throw new Error(data.error);
+            
+            setRequestSuccess('Admin request approved successfully');
+            setShowSecretInput({ ...showSecretInput, [requestId]: false });
+            setSecretCode({ ...secretCode, [requestId]: '' });
+            fetchRequests();
+        } catch (err: any) {
+            setRequestError(err.message);
+        }
+    };
+
+    const handleRejectRequest = async (requestId: string) => {
+        try {
+            const response = await fetch('/api/admin-requests/approve', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ requestId, action: 'reject' })
+            });
+            const data = await response.json();
+            if (data.error) throw new Error(data.error);
+            
+            setRequestSuccess('Admin request rejected');
+            fetchRequests();
+        } catch (err: any) {
+            setRequestError(err.message);
         }
     };
 
@@ -267,48 +341,111 @@ export default function AdminDashboard() {
     };
 
     return (
-        <div className="min-h-screen bg-[#0f172a] text-white font-sans selection:bg-indigo-500/30">
-            {/* Minimalist Top Navigation */}
-            <nav className="flex justify-between items-center px-8 py-6 border-b border-white/5 backdrop-blur-md sticky top-0 z-50">
-                <div className="flex flex-col">
-                    <h1 className="text-xl font-black tracking-tighter uppercase italic group">
-                        Admin <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-cyan-400 group-hover:from-cyan-400 group-hover:to-indigo-400 transition-all duration-500">Suite</span>
-                    </h1>
-                    <div className="flex items-center gap-2">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                        <p className="text-[10px] text-slate-500 uppercase tracking-[0.2em] font-bold">System Active</p>
-                    </div>
+        <div className="min-h-screen bg-slate-900 text-white">
+            <nav className="flex justify-between items-center px-8 py-6 border-b border-slate-800">
+                <div>
+                    <h1 className="text-2xl font-black uppercase tracking-tighter italic">Admin <span className="text-indigo-400">Hub</span></h1>
+                    <p className="text-[10px] text-slate-500 uppercase tracking-widest font-bold">System Management Console</p>
                 </div>
-
-                <div className="flex items-center gap-8">
-                    {/* Section Nav */}
-                    <div className="hidden md:flex items-center gap-1 bg-white/5 rounded-xl p-1">
-                        <Link href="/admin/dashboard" className="text-[10px] font-black uppercase tracking-widest px-4 py-2 rounded-lg bg-white/10 text-white transition-all">
-                            Dashboard
-                        </Link>
-                        <Link href="/admin/engineers" className="text-[10px] font-black uppercase tracking-widest px-4 py-2 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-all">
-                            Engineers
-                        </Link>
+                <div className="flex items-center gap-6">
+                    <div className="text-right">
+                        <p className="text-xs font-bold">{user?.email}</p>
+                        <p className="text-[10px] text-indigo-400 uppercase tracking-widest">Administrator</p>
                     </div>
-
-                    <div className="hidden md:flex flex-col items-end">
-                        <p className="text-xs font-bold text-slate-200">{user?.email || "Admin User"}</p>
-                        <p className="text-[9px] text-indigo-400 uppercase tracking-widest font-black leading-none mt-1">Super Administrator</p>
-                    </div>
-                    
                     <button 
                         onClick={handleLogout}
-                        className="group relative flex items-center gap-2 bg-white/5 hover:bg-red-500/10 text-white/50 hover:text-red-400 border border-white/10 hover:border-red-500/20 px-5 py-2.5 rounded-xl text-xs font-bold transition-all duration-300"
+                        className="bg-slate-800 hover:bg-red-500/20 hover:text-red-400 border border-slate-700 px-4 py-2 rounded-lg text-xs font-bold transition-all"
                     >
-                        <span>Logout</span>
-                        <svg className="w-3.5 h-3.5 transition-transform group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                        </svg>
+                        Terminate Session
                     </button>
                 </div>
             </nav>
 
             <main className="p-8 max-w-7xl mx-auto">
+                {/* Admin Requests Section */}
+                <div className="mt-8 bg-white/[0.02] border border-white/5 rounded-[2rem] p-8">
+                    <div className="flex items-center justify-between mb-6">
+                        <h3 className="text-xl font-black italic uppercase tracking-tighter">Pending Admin Requests</h3>
+                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                            {requests.length} Pending
+                        </span>
+                    </div>
+                    
+                    {requestError && (
+                        <div className="mb-4 bg-red-500/10 border border-red-500/20 text-red-400 px-4 py-3 rounded-lg text-sm">
+                            {requestError}
+                        </div>
+                    )}
+                    {requestSuccess && (
+                        <div className="mb-4 bg-green-500/10 border border-green-500/20 text-green-400 px-4 py-3 rounded-lg text-sm">
+                            {requestSuccess}
+                        </div>
+                    )}
+                    
+                    {requestsLoading ? (
+                        <div className="text-slate-400 text-sm">Loading requests...</div>
+                    ) : requests.length === 0 ? (
+                        <div className="text-slate-400 text-sm">No pending admin requests</div>
+                    ) : (
+                        <div className="space-y-4">
+                            {requests.map((request) => (
+                                <div key={request.id} className="bg-white/[0.03] border border-white/10 p-4 rounded-xl">
+                                    <div className="flex justify-between items-start mb-4">
+                                        <div>
+                                            <p className="font-bold text-sm text-white">{request.email}</p>
+                                            <p className="text-xs text-slate-500">Requested: {new Date(request.created_at).toLocaleDateString()}</p>
+                                        </div>
+                                        <span className="bg-yellow-500/10 text-yellow-400 px-3 py-1 rounded-full text-xs font-bold uppercase">
+                                            Pending
+                                        </span>
+                                    </div>
+                                    
+                                    {showSecretInput[request.id] ? (
+                                        <div className="space-y-3">
+                                            <input
+                                                type="text"
+                                                placeholder="Enter secret code (min 4 chars)"
+                                                value={secretCode[request.id] || ''}
+                                                onChange={(e) => setSecretCode({ ...secretCode, [request.id]: e.target.value })}
+                                                className="w-full bg-white/[0.05] border border-white/10 px-4 py-3 rounded-lg text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+                                            />
+                                            <div className="flex gap-2">
+                                                <button
+                                                    onClick={() => handleApproveRequest(request.id)}
+                                                    className="bg-green-600 hover:bg-green-500 px-4 py-2 rounded-lg text-xs font-bold transition-all"
+                                                >
+                                                    Approve with Code
+                                                </button>
+                                                <button
+                                                    onClick={() => setShowSecretInput({ ...showSecretInput, [request.id]: false })}
+                                                    className="bg-white/10 hover:bg-white/20 px-4 py-2 rounded-lg text-xs font-bold transition-all"
+                                                >
+                                                    Cancel
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="flex gap-2">
+                                            <button
+                                                onClick={() => setShowSecretInput({ ...showSecretInput, [request.id]: true })}
+                                                className="bg-green-600 hover:bg-green-500 px-4 py-2 rounded-lg text-xs font-bold transition-all"
+                                            >
+                                                Approve
+                                            </button>
+                                            <button
+                                                onClick={() => handleRejectRequest(request.id)}
+                                                className="bg-red-600 hover:bg-red-500 px-4 py-2 rounded-lg text-xs font-bold transition-all"
+                                            >
+                                                Reject
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+
                 {/* Stats Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mt-8">
                     {[
