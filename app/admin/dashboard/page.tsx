@@ -71,7 +71,12 @@ export default function AdminDashboard() {
         try {
             setRequestsLoading(true);
             setRequestError(null);
-            const response = await fetch('/api/admin-requests');
+            const token = await user?.getIdToken(true);
+            if (!token) throw new Error("Unauthorized: Please log in again.");
+
+            const response = await fetch('/api/admin-requests', {
+                headers: { Authorization: `Bearer ${token}` }
+            });
             const data = await response.json();
             if (data.error) throw new Error(data.error);
             setRequests(data.data || []);
@@ -191,9 +196,15 @@ export default function AdminDashboard() {
         }
 
         try {
+            const token = await user?.getIdToken(true);
+            if (!token) throw new Error("Unauthorized: Please log in again.");
+
             const response = await fetch('/api/admin-requests/approve', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`
+                },
                 body: JSON.stringify({ requestId, action: 'approve', secretCode: code })
             });
             const data = await response.json();
@@ -210,9 +221,15 @@ export default function AdminDashboard() {
 
     const handleRejectRequest = async (requestId: string) => {
         try {
+            const token = await user?.getIdToken(true);
+            if (!token) throw new Error("Unauthorized: Please log in again.");
+
             const response = await fetch('/api/admin-requests/approve', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`
+                },
                 body: JSON.stringify({ requestId, action: 'reject' })
             });
             const data = await response.json();

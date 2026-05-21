@@ -1,10 +1,29 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '../../../utils/supabase/client';
+import { createAdminClient } from '../../../utils/supabase/admin';
+import { verifyUserRoleAction } from '../../src/lib/actions/authActions';
 
-export async function GET() {
-  const supabase = createClient();
-  
+function getBearerToken(request: Request) {
+  const authHeader = request.headers.get('authorization');
+  return authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
+}
+
+function getErrorMessage(error: unknown) {
+  return error instanceof Error ? error.message : 'Failed to fetch admin requests';
+}
+
+export async function GET(request: Request) {
   try {
+    const token = getBearerToken(request);
+    if (!token) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { role } = await verifyUserRoleAction(token);
+    if (role !== 'admin') {
+      return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
+    }
+
+    const supabase = createAdminClient();
     const { data, error } = await supabase
       .from('admin_requests')
       .select('*')
@@ -14,7 +33,7 @@ export async function GET() {
     if (error) throw error;
 
     return NextResponse.json({ data }, { status: 200 });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 });
   }
 }
