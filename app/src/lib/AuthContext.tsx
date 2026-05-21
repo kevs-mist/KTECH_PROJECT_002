@@ -3,7 +3,6 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { onAuthStateChanged, User, signOut } from "firebase/auth";
 import { auth } from "./firebase";
-import { verifyUserRoleAction } from "./actions/authActions";
 import { employeeService } from "./services/employeeService";
 
 export type UserRole = "admin" | "employee" | "user" | null;
@@ -16,6 +15,19 @@ interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+async function fetchUserRole(idToken: string): Promise<UserRole> {
+    const response = await fetch("/api/auth/role", {
+        headers: { Authorization: `Bearer ${idToken}` },
+    });
+    const data = await response.json();
+
+    if (!response.ok || data.error) {
+        throw new Error(data.error || "Unable to verify user role.");
+    }
+
+    return data.role;
+}
 
 /**
  * AuthProvider
@@ -37,8 +49,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 // Fetch Role securely from Server
                 try {
                     const idToken = await firebaseUser.getIdToken(true);
-                    const result = await verifyUserRoleAction(idToken);
-                    setRole(result.role);
+                    const verifiedRole = await fetchUserRole(idToken);
+                    setRole(verifiedRole);
                 } catch (err) {
                     console.error("Auth role verification error:", err);
                     setUser(null);

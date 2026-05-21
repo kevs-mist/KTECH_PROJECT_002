@@ -3,7 +3,6 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { signInWithEmailAndPassword, signOut } from "firebase/auth";
 import { auth } from "../../../lib/firebase"; 
-import { verifyUserRoleAction, verifyAdminOtpAction } from "../../../lib/actions/authActions";
 import { ErrorHandler } from "../../../lib/utils/errorHandler";
 
 function getErrorMessage(error: unknown) {
@@ -24,6 +23,37 @@ async function logAuthDiagnostics() {
     }
 }
 
+async function fetchUserRole(idToken: string) {
+    const response = await fetch("/api/auth/role", {
+        headers: { Authorization: `Bearer ${idToken}` },
+    });
+    const data = await response.json();
+
+    if (!response.ok || data.error) {
+        throw new Error(data.error || "Unable to verify user role.");
+    }
+
+    return data.role as "admin" | "employee" | "user";
+}
+
+async function verifyAdminOtpWithApi(idToken: string, otp: string) {
+    const response = await fetch("/api/auth/admin-otp", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${idToken}`,
+        },
+        body: JSON.stringify({ otp }),
+    });
+    const data = await response.json();
+
+    if (!response.ok || data.error) {
+        throw new Error(data.error || "Verification failed.");
+    }
+
+    return data;
+}
+
 export function useLoginServiceProvider() {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -41,7 +71,7 @@ export function useLoginServiceProvider() {
 
             // Server verification using ID Token
             const idToken = await firebaseUser.getIdToken(true);
-            const { role } = await verifyUserRoleAction(idToken);
+            const role = await fetchUserRole(idToken);
             
             if (role === "admin") {
                 // User is admin, do NOT redirect yet. Return flag for UI to show OTP.
@@ -82,7 +112,7 @@ export function useLoginServiceProvider() {
             if (!auth.currentUser) throw new Error("Session expired. Please try again.");
             const idToken = await auth.currentUser.getIdToken(true);
 
-            await verifyAdminOtpAction(idToken, otp);
+            await verifyAdminOtpWithApi(idToken, otp);
 
             router.push("/admin/dashboard");
             return { success: true };
