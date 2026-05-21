@@ -1,8 +1,7 @@
 import { auth } from "./firebase";
-import { uploadMediaAction } from "./actions/storageActions";
 
 /**
- * Uploads a file to Supabase Storage securely via Server Action.
+ * Uploads a file to Supabase Storage securely via an API route.
  * 
  * @param file The File object from an <input type="file">
  * @param path The path in Supabase Storage (e.g., "tickets/123/proof.jpg")
@@ -24,10 +23,18 @@ export async function uploadMediaToStorage(
 
     if (onProgress) onProgress(60);
 
-    const publicUrl = await uploadMediaAction(token, formData);
+    const response = await fetch("/api/storage/upload", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
+    });
+    const data = await response.json();
+
+    if (!response.ok || data.error) {
+        throw new Error(data.error || "Failed to upload media.");
+    }
 
     if (onProgress) onProgress(100);
 
-    return publicUrl;
+    return data.publicUrl;
 }
-

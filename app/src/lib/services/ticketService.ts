@@ -1,16 +1,4 @@
 import { auth } from "../firebase";
-import { 
-    getTicketsAction, 
-    createTicketAction, 
-    acceptTicketAction, 
-    getAdminStatsAction,
-    resolveTicketAction,
-    escalateTicketAction,
-    markInProgressAction,
-    adminCloseTicketAction,
-    assignTicketToEmployeeAction,
-    adminReleaseTicketAction
-} from "../actions/ticketActions";
 
 export interface Ticket {
     id?: string;
@@ -33,10 +21,6 @@ export interface Ticket {
     version?: number; // For optimistic locking
 }
 
-/**
- * Ticket Service (Client Side)
- * Now routes through secure Server Actions.
- */
 export const ticketService = {
     async getIdToken() {
         const token = await auth.currentUser?.getIdToken(true);
@@ -44,58 +28,69 @@ export const ticketService = {
         return token;
     },
 
-    async createTicket(ticket: Ticket) {
+    async request(path: string, init: RequestInit = {}) {
         const token = await this.getIdToken();
-        return createTicketAction(token, ticket);
+        const response = await fetch(path, {
+            ...init,
+            headers: {
+                ...(init.headers || {}),
+                Authorization: `Bearer ${token}`,
+            },
+        });
+        const data = await response.json();
+        if (!response.ok || data.error) throw new Error(data.error || "Ticket request failed.");
+        return data;
+    },
+
+    async post(operation: string, payload: Record<string, unknown>) {
+        return this.request("/api/tickets", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ operation, ...payload }),
+        });
+    },
+
+    async createTicket(ticket: Ticket) {
+        return this.post("create", { ticket });
     },
 
     async getAllTickets() {
-        const token = await this.getIdToken();
-        return getTicketsAction(token);
+        return this.request("/api/tickets");
     },
 
     async getEmployeeTickets() {
-        const token = await this.getIdToken();
-        return getTicketsAction(token);
+        return this.request("/api/tickets");
     },
 
     async getAdminStats() {
-        const token = await this.getIdToken();
-        return getAdminStatsAction(token);
+        return this.request("/api/tickets?resource=admin-stats");
     },
 
-    async acceptTicket(ticketId: string, employeeUid: string, currentVersion: number) {
-        const token = await this.getIdToken();
-        return acceptTicketAction(token, ticketId, currentVersion);
+    async acceptTicket(ticketId: string, _employeeUid: string, currentVersion: number) {
+        return this.post("accept", { ticketId, currentVersion });
     },
 
     async resolveTicket(ticketId: string, currentVersion: number, proofMediaUrl: string, resolutionNotes?: string) {
-        const token = await this.getIdToken();
-        return resolveTicketAction(token, ticketId, currentVersion, proofMediaUrl, resolutionNotes);
+        return this.post("resolve", { ticketId, currentVersion, proofMediaUrl, resolutionNotes });
     },
 
     async escalateTicket(ticketId: string, currentVersion: number, proofMediaUrl?: string, escalationNotes?: string) {
-        const token = await this.getIdToken();
-        return escalateTicketAction(token, ticketId, currentVersion, proofMediaUrl, escalationNotes);
+        return this.post("escalate", { ticketId, currentVersion, proofMediaUrl, escalationNotes });
     },
 
     async markInProgress(ticketId: string, currentVersion: number) {
-        const token = await this.getIdToken();
-        return markInProgressAction(token, ticketId, currentVersion);
+        return this.post("mark-in-progress", { ticketId, currentVersion });
     },
 
     async adminCloseTicket(ticketId: string, currentVersion: number, adminNotes?: string) {
-        const token = await this.getIdToken();
-        return adminCloseTicketAction(token, ticketId, currentVersion, adminNotes);
+        return this.post("admin-close", { ticketId, currentVersion, adminNotes });
     },
 
     async assignToEmployee(ticketId: string, employeeUid: string, currentVersion: number) {
-        const token = await this.getIdToken();
-        return assignTicketToEmployeeAction(token, ticketId, employeeUid, currentVersion);
+        return this.post("assign", { ticketId, employeeUid, currentVersion });
     },
 
     async adminReleaseTicket(ticketId: string, currentVersion: number) {
-        const token = await this.getIdToken();
-        return adminReleaseTicketAction(token, ticketId, currentVersion);
+        return this.post("admin-release", { ticketId, currentVersion });
     }
 };

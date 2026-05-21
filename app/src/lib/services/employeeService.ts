@@ -1,7 +1,18 @@
 import { auth } from "../firebase";
-import { getEmployeesAction, EmployeeProfile, setEmployeeOnlineStatusAction } from "../actions/employeeActions";
 
-export type { EmployeeProfile };
+export interface EmployeeProfile {
+    firebase_uid: string;
+    employee_id: string;
+    full_name: string | null;
+    email: string;
+    department: string | null;
+    status: "active" | "on_leave" | "terminated";
+    joined_at: string;
+    is_online: boolean;
+    last_seen: string;
+    active_tickets: number;
+    closed_tickets: number;
+}
 
 export const employeeService = {
     async getIdToken() {
@@ -10,13 +21,29 @@ export const employeeService = {
         return token;
     },
 
-    async getEmployees(): Promise<EmployeeProfile[]> {
+    async request(path: string, init: RequestInit = {}) {
         const token = await this.getIdToken();
-        return getEmployeesAction(token);
+        const response = await fetch(path, {
+            ...init,
+            headers: {
+                ...(init.headers || {}),
+                Authorization: `Bearer ${token}`,
+            },
+        });
+        const data = await response.json();
+        if (!response.ok || data.error) throw new Error(data.error || "Employee request failed.");
+        return data;
+    },
+
+    async getEmployees(): Promise<EmployeeProfile[]> {
+        return this.request("/api/employees");
     },
 
     async setOnlineStatus(isOnline: boolean) {
-        const token = await this.getIdToken();
-        return setEmployeeOnlineStatusAction(token, isOnline);
+        return this.request("/api/employees", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ operation: "online-status", isOnline }),
+        });
     }
 };
