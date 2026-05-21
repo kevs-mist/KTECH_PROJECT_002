@@ -1,16 +1,6 @@
 import { NextResponse } from "next/server";
-import {
-    acceptTicketAction,
-    adminCloseTicketAction,
-    adminReleaseTicketAction,
-    assignTicketToEmployeeAction,
-    createTicketAction,
-    escalateTicketAction,
-    getAdminStatsAction,
-    getTicketsAction,
-    markInProgressAction,
-    resolveTicketAction,
-} from "../../src/lib/actions/ticketActions";
+import { adminAuth } from "../../../utils/firebase/admin";
+import { createAdminClient } from "../../../utils/supabase/admin";
 
 function getBearerToken(request: Request) {
     const authHeader = request.headers.get("authorization");
@@ -27,6 +17,37 @@ function requireToken(request: Request) {
     return token;
 }
 
+async function getAdminStats(token: string) {
+    const decodedToken = await adminAuth.verifyIdToken(token);
+    const supabase = createAdminClient();
+
+    const { data: adminData, error: adminError } = await supabase
+        .from("admins")
+        .select("id")
+        .eq("firebase_uid", decodedToken.uid)
+        .maybeSingle();
+
+    if (adminError) throw adminError;
+    if (!adminData) throw new Error("Unauthorized: Admin access required.");
+
+    const [totalResult, openResult, closedResult, escalatedResult] = await Promise.all([
+        supabase.from("tickets").select("*", { count: "exact", head: true }),
+        supabase.from("tickets").select("*", { count: "exact", head: true }).eq("status", "open"),
+        supabase.from("tickets").select("*", { count: "exact", head: true }).eq("status", "closed"),
+        supabase.from("tickets").select("*", { count: "exact", head: true }).eq("status", "re_raised"),
+    ]);
+
+    const firstError = totalResult.error || openResult.error || closedResult.error || escalatedResult.error;
+    if (firstError) throw firstError;
+
+    return {
+        total: totalResult.count || 0,
+        open: openResult.count || 0,
+        closed: closedResult.count || 0,
+        escalated: escalatedResult.count || 0,
+    };
+}
+
 export async function GET(request: Request) {
     try {
         const token = requireToken(request);
@@ -34,9 +55,10 @@ export async function GET(request: Request) {
         const resource = url.searchParams.get("resource");
 
         if (resource === "admin-stats") {
-            return NextResponse.json(await getAdminStatsAction(token));
+            return NextResponse.json(await getAdminStats(token));
         }
 
+        const { getTicketsAction } = await import("../../src/lib/actions/ticketActions");
         return NextResponse.json(await getTicketsAction(token));
     } catch (error: unknown) {
         return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 });
@@ -47,6 +69,16 @@ export async function POST(request: Request) {
     try {
         const token = requireToken(request);
         const body = await request.json();
+        const {
+            acceptTicketAction,
+            adminCloseTicketAction,
+            adminReleaseTicketAction,
+            assignTicketToEmployeeAction,
+            createTicketAction,
+            escalateTicketAction,
+            markInProgressAction,
+            resolveTicketAction,
+        } = await import("../../src/lib/actions/ticketActions");
 
         switch (body.operation) {
             case "create":
