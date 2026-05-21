@@ -1,7 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { employeeService, EmployeeProfile } from '../../app/src/lib/services/employeeService';
 import { auth } from '../../app/src/lib/firebase';
-import { getEmployeesAction, setEmployeeOnlineStatusAction } from '../../app/src/lib/actions/employeeActions';
+
+type MockAuth = Omit<typeof auth, 'currentUser'> & {
+    currentUser: null | {
+        getIdToken: ReturnType<typeof vi.fn>;
+    };
+};
+
+const mockAuth = auth as MockAuth;
 
 // Mock dependencies
 vi.mock('../../app/src/lib/firebase', () => ({
@@ -10,16 +17,12 @@ vi.mock('../../app/src/lib/firebase', () => ({
     }
 }));
 
-vi.mock('../../app/src/lib/actions/employeeActions', () => ({
-    getEmployeesAction: vi.fn(),
-    setEmployeeOnlineStatusAction: vi.fn()
-}));
-
 describe('employeeService integration tests', () => {
     beforeEach(() => {
         vi.clearAllMocks();
         // Reset auth.currentUser to null before each test
-        (auth as any).currentUser = null;
+        mockAuth.currentUser = null;
+        global.fetch = vi.fn();
     });
 
     describe('getIdToken', () => {
@@ -29,7 +32,7 @@ describe('employeeService integration tests', () => {
 
         it('should return a token if user is signed in', async () => {
             const mockGetIdToken = vi.fn().mockResolvedValue('mock-firebase-token');
-            (auth as any).currentUser = {
+            mockAuth.currentUser = {
                 getIdToken: mockGetIdToken
             };
 
@@ -46,7 +49,7 @@ describe('employeeService integration tests', () => {
 
         it('should fetch employees successfully when authorized', async () => {
             const mockGetIdToken = vi.fn().mockResolvedValue('mock-token');
-            (auth as any).currentUser = {
+            mockAuth.currentUser = {
                 getIdToken: mockGetIdToken
             };
 
@@ -78,10 +81,17 @@ describe('employeeService integration tests', () => {
                     closed_tickets: 5
                 }
             ];
-            vi.mocked(getEmployeesAction).mockResolvedValue(mockEmployees);
+            vi.mocked(global.fetch).mockResolvedValue({
+                ok: true,
+                json: async () => mockEmployees,
+            } as Response);
 
             const result = await employeeService.getEmployees();
-            expect(getEmployeesAction).toHaveBeenCalledWith('mock-token');
+            expect(global.fetch).toHaveBeenCalledWith('/api/employees', {
+                headers: {
+                    Authorization: 'Bearer mock-token'
+                }
+            });
             expect(result).toEqual(mockEmployees);
         });
     });
@@ -93,15 +103,25 @@ describe('employeeService integration tests', () => {
 
         it('should call setEmployeeOnlineStatusAction with parameters successfully', async () => {
             const mockGetIdToken = vi.fn().mockResolvedValue('mock-token');
-            (auth as any).currentUser = {
+            mockAuth.currentUser = {
                 getIdToken: mockGetIdToken
             };
 
-            vi.mocked(setEmployeeOnlineStatusAction).mockResolvedValue(undefined);
+            vi.mocked(global.fetch).mockResolvedValue({
+                ok: true,
+                json: async () => ({ success: true }),
+            } as Response);
 
             const result = await employeeService.setOnlineStatus(true);
-            expect(setEmployeeOnlineStatusAction).toHaveBeenCalledWith('mock-token', true);
-            expect(result).toBeUndefined();
+            expect(global.fetch).toHaveBeenCalledWith('/api/employees', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: 'Bearer mock-token'
+                },
+                body: JSON.stringify({ operation: 'online-status', isOnline: true }),
+            });
+            expect(result).toEqual({ success: true });
         });
     });
 });
