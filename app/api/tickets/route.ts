@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getAdminAuth } from "../../../utils/firebase/admin";
+import { adminAuth } from "../../../utils/firebase/admin";
 import { createAdminClient } from "../../../utils/supabase/admin";
 
 function getBearerToken(request: Request) {
@@ -18,7 +18,6 @@ function requireToken(request: Request) {
 }
 
 async function getAdminStats(token: string) {
-    const adminAuth = getAdminAuth();
     const decodedToken = await adminAuth.verifyIdToken(token);
     const supabase = createAdminClient();
 

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getAdminAuth } from "../../../../utils/firebase/admin";
+import { adminAuth } from "../../../../utils/firebase/admin";
 
 function getErrorMessage(error: unknown) {
     return error instanceof Error ? error.message : "Failed to generate password reset link";
@@ -16,7 +16,6 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: "Email is required" }, { status: 400 });
         }
 
-        const adminAuth = getAdminAuth();
         const rawLink = await adminAuth.generatePasswordResetLink(email.trim());
         let link = rawLink;
 

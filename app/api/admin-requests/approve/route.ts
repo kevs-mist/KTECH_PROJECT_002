@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { createAdminClient } from '../../../../utils/supabase/admin';
-import { getAdminAuth } from '../../../../utils/firebase/admin';
+import { adminAuth } from '../../../../utils/firebase/admin';
 
 function getBearerToken(request: Request) {
   const authHeader = request.headers.get('authorization');
@@ -18,7 +18,6 @@ export async function POST(request: Request) {
     }
 
     // Verify user role using Firebase Admin
-    const adminAuth = getAdminAuth();
     const decodedToken = await adminAuth.verifyIdToken(token);
     const uid = decodedToken.uid;
     const supabase = createAdminClient();

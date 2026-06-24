@@ -1,6 +1,6 @@
 import { createAdminClient } from "../../../../utils/supabase/admin";
 
-import { getAdminAuth } from "../../../../utils/firebase/admin";
+import { adminAuth } from "../../../../utils/firebase/admin";
 import bcrypt from "bcryptjs";
 
 export type UserRole = "admin" | "employee" | "user";
@@ -18,7 +18,6 @@ export async function verifyUserRoleAction(idToken: string) {
         if (!idToken) throw new Error("ID Token is required");
 
         // 1. Verify the ID Token server-side
-        const adminAuth = getAdminAuth();
         const decodedToken = await adminAuth.verifyIdToken(idToken);
         const uid = decodedToken.uid;
 
@@ -139,7 +138,6 @@ export async function generatePasswordResetLinkAction(email: string) {
     try {
         // Omitting actionCodeSettings prevents "INTERNAL ASSERT FAILED" when localhost 
         // is not strictly whitelisted in the Firebase Auth console.
-        const adminAuth = getAdminAuth();
         const rawLink = await adminAuth.generatePasswordResetLink(email.trim());
         
         // Extract oobCode from the Firebase generated link

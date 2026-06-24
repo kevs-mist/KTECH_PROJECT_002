@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "../../../utils/supabase/admin";
-import { getAdminAuth } from "../../../utils/firebase/admin";
+import { adminAuth } from "../../../utils/firebase/admin";
 
 function getBearerToken(request: Request) {
     const authHeader = request.headers.get("authorization");
@@ -39,7 +39,6 @@ export async function GET(request: Request) {
             return NextResponse.json({ error: "Missing bearer token" }, { status: 401 });
         }
 
-        const adminAuth = getAdminAuth();
         const decodedToken = await adminAuth.verifyIdToken(token);
         const supabase = createAdminClient();
 

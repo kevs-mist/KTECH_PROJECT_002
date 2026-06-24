@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
-import { getAdminAuth } from "../../../../utils/firebase/admin";
+import { adminAuth } from "../../../../utils/firebase/admin";
 import { createAdminClient } from "../../../../utils/supabase/admin";
 
 function getBearerToken(request: Request) {
@@ -24,7 +24,6 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: "Security code is required" }, { status: 400 });
         }
 
-        const adminAuth = getAdminAuth();
         const decodedToken = await adminAuth.verifyIdToken(token);
         const uid = decodedToken.uid;
         const supabase = createAdminClient();
