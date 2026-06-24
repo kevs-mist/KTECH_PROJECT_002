@@ -12,7 +12,7 @@
  */
 
 import { NextResponse } from "next/server";
-import { adminAuth } from "../../../../utils/firebase/admin";
+import { getAdminAuth } from "../../../../utils/firebase/admin";
 import { createAdminClient } from "../../../../utils/supabase/admin";
 
 // ── Simple in-memory rate limiter ─────────────────────────────────────────────
@@ -63,6 +63,7 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
+        const adminAuth = getAdminAuth();
         const decodedToken = await adminAuth.verifyIdToken(token);
         const uid = decodedToken.uid;
         const email = decodedToken.email;
