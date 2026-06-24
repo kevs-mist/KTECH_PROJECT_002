@@ -196,14 +196,21 @@ export default function EmployeeDashboard() {
         <div className="min-h-screen bg-[#f8fafc] text-slate-900 p-6 md:p-10 font-sans selection:bg-emerald-100">
             {/* Top Navigation */}
             <nav className="flex justify-between items-center mb-10 bg-white p-6 rounded-[2.5rem] shadow-sm border border-slate-100">
-                <div>
-                    <h1 className="text-2xl font-black uppercase tracking-tighter italic text-emerald-600 flex items-center gap-3">
-                        Prime <span className="text-slate-900">Services CRM</span>
-                        <span className="not-italic text-[9px] bg-slate-900 text-white px-2 py-0.5 rounded-md tracking-widest font-black uppercase shadow-lg shadow-slate-900/20">Beta v1.0</span>
-                    </h1>
-                    <div className="flex items-center gap-2 mt-0.5">
-                        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                        <p className="text-[10px] text-slate-400 uppercase tracking-widest font-black">Live Operations Console</p>
+                <div className="flex items-center gap-4">
+                    <img 
+                        src="/images/prime_services_logo.png" 
+                        alt="Prime Services ATM Services & Maintenance" 
+                        className="w-12 h-12 object-contain"
+                    />
+                    <div>
+                        <h1 className="text-2xl font-black uppercase tracking-tighter italic text-emerald-600 flex items-center gap-3">
+                            Prime <span className="text-slate-900">Services CRM</span>
+                            <span className="not-italic text-[9px] bg-slate-900 text-white px-2 py-0.5 rounded-md tracking-widest font-black uppercase shadow-lg shadow-slate-900/20">Beta v1.0</span>
+                        </h1>
+                        <div className="flex items-center gap-2 mt-0.5">
+                            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                            <p className="text-[10px] text-slate-400 uppercase tracking-widest font-black">Live Operations Console</p>
+                        </div>
                     </div>
                 </div>
                 <div className="flex items-center gap-6">

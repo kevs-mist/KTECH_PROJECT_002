@@ -358,9 +358,16 @@ export default function AdminDashboard() {
     return (
         <div className="min-h-screen bg-slate-900 text-white">
             <nav className="flex justify-between items-center px-8 py-6 border-b border-slate-800">
-                <div>
-                    <h1 className="text-2xl font-black uppercase tracking-tighter italic">Prime <span className="text-indigo-400">Admin Hub</span></h1>
-                    <p className="text-[10px] text-slate-500 uppercase tracking-widest font-bold">System Management Console</p>
+                <div className="flex items-center gap-4">
+                    <img 
+                        src="/images/prime_services_logo.png" 
+                        alt="Prime Services ATM Services & Maintenance" 
+                        className="w-12 h-12 object-contain"
+                    />
+                    <div>
+                        <h1 className="text-2xl font-black uppercase tracking-tighter italic">Prime <span className="text-indigo-400">Admin Hub</span></h1>
+                        <p className="text-[10px] text-slate-500 uppercase tracking-widest font-bold">System Management Console</p>
+                    </div>
                 </div>
                 <div className="flex items-center gap-6">
                     <div className="text-right">

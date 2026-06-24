@@ -60,11 +60,11 @@ export default function Login() {
                 <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-emerald-500 via-teal-600 to-emerald-500"></div>
 
                 <div className="login-header mb-8 flex flex-col items-center">
-                    <div className="w-16 h-16 bg-emerald-50 rounded-2xl flex items-center justify-center mb-4 shadow-inner text-emerald-600">
-                        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/>
-                        </svg>
-                    </div>
+                    <img 
+                        src="/images/prime_services_logo.png" 
+                        alt="Prime Services ATM Services & Maintenance" 
+                        className="w-24 h-24 object-contain mb-4"
+                    />
                     <h1 className="text-3xl font-extrabold text-center tracking-tight text-slate-800 uppercase">
                         Staff <span className="text-emerald-600">Portal</span>
                     </h1>
