@@ -9,7 +9,7 @@ import { debounce } from "../../src/lib/utils/debounce";
 import { ErrorHandler } from "../../src/lib/utils/errorHandler";
 
 export default function EmployeeDashboard() {
-    const { user, logout } = useAuth();
+    const { user, role, logout } = useAuth();
     const [tickets, setTickets] = useState<Ticket[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
@@ -84,6 +84,7 @@ export default function EmployeeDashboard() {
         try {
             if (!user) return;
             console.log("Fetching tickets for user:", user.uid);
+            console.log("Current user role:", role);
             const data = await ticketService.getEmployeeTickets();
             console.log("Fetched tickets:", data);
             setTickets(data);
