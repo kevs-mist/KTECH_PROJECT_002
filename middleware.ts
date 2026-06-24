@@ -1,7 +1,7 @@
 import { type NextRequest } from 'next/server'
 import { createClient } from '@/utils/supabase/proxy'
 
-export async function proxy(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const response = await createClient(request)
 
   // 1. Strict Content Security Policy (CSP)

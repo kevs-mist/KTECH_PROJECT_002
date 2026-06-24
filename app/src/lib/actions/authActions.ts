@@ -152,12 +152,6 @@ export async function generatePasswordResetLinkAction(email: string) {
             // Ignore parse errors, fallback to raw link
         }
         
-        if (process.env.NODE_ENV === "development") {
-            console.log("\n🔑 [DEV MODE] GENERATED PASSWORD RESET LINK:");
-            console.log(customLink);
-            console.log("=========================================\n");
-        }
-
         return { success: true, link: customLink };
     } catch (error: unknown) {
         console.error("Failed to generate password reset link on server:", getErrorMessage(error));

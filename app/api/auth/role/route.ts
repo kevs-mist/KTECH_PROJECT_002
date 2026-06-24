@@ -46,6 +46,19 @@ export async function GET(request: Request) {
             return NextResponse.json({ role: "employee", uid, employeeId: employeeData.id });
         }
 
+        // Fallback: Check users table role field for employees who may not be in employees table
+        const { data: userData, error: userError } = await supabase
+            .from("users")
+            .select("role")
+            .eq("firebase_uid", uid)
+            .maybeSingle();
+
+        if (userError) throw userError;
+
+        if (userData && userData.role === "employee") {
+            return NextResponse.json({ role: "employee", uid });
+        }
+
         return NextResponse.json({ role: "user", uid });
     } catch (error: unknown) {
         console.error("Role API verification error:", getErrorMessage(error));
