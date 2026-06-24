@@ -34,7 +34,7 @@ export default function UserDashboard() {
                     </div>
                     <h2 className="text-4xl font-black text-slate-800 tracking-tight mb-4 italic">Welcome Back!</h2>
                     <p className="text-slate-500 text-lg max-w-md mx-auto leading-relaxed">
-                        Your account is active. Start exploring your personalized Field CRM dashboard today.
+                        Your account is active. Start exploring your personalized Prime Services CRM dashboard today.
                     </p>
                     <div className="mt-10 flex gap-4 justify-center">
                         <button className="bg-indigo-600 text-white px-8 py-3.5 rounded-2xl font-bold hover:bg-indigo-500 transition shadow-lg shadow-indigo-500/20">Explore Features</button>

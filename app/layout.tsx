@@ -4,8 +4,8 @@ import "./src/lib/env";
 import Providers from "./providers";
 
 export const metadata: Metadata = {
-  title: "KTech Field CRM",
-  description: "Secure, real-time field operations and ticket management console for KTech field engineers and dispatch admins.",
+  title: "Prime Services CRM",
+  description: "Secure, real-time field operations and ticket management console for Prime field engineers and dispatch admins.",
 };
 
 export default function RootLayout({

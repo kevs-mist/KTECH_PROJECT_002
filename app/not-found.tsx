@@ -17,7 +17,7 @@ export default function NotFound() {
                 <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest bg-indigo-500/10 px-3 py-1 rounded-full">Error 404</span>
                 <h1 className="text-3xl font-black italic uppercase leading-none mt-4 tracking-tighter">Sector Not Found</h1>
                 <p className="text-slate-500 text-sm mt-3 mb-8 leading-relaxed font-medium">
-                    The requested coordinates or interface path does not exist on the current KTech Field Force grid.
+                    The requested coordinates or interface path does not exist on the current Prime Services grid.
                 </p>
 
                 <a

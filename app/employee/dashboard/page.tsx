@@ -198,7 +198,7 @@ export default function EmployeeDashboard() {
             <nav className="flex justify-between items-center mb-10 bg-white p-6 rounded-[2.5rem] shadow-sm border border-slate-100">
                 <div>
                     <h1 className="text-2xl font-black uppercase tracking-tighter italic text-emerald-600 flex items-center gap-3">
-                        KTech <span className="text-slate-900">FieldForce</span>
+                        Prime <span className="text-slate-900">Services CRM</span>
                         <span className="not-italic text-[9px] bg-slate-900 text-white px-2 py-0.5 rounded-md tracking-widest font-black uppercase shadow-lg shadow-slate-900/20">Beta v1.0</span>
                     </h1>
                     <div className="flex items-center gap-2 mt-0.5">

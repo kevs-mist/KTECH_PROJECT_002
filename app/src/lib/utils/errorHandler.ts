@@ -1,5 +1,5 @@
 /**
- * Centralized Error Handler Utility for KTech Field CRM
+ * Centralized Error Handler Utility for Prime Services CRM
  * Translates technical error codes (Firebase & PostgreSQL) into friendly, action-oriented notifications.
  */
 export class ErrorHandler {

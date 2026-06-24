@@ -8,7 +8,7 @@ import { AuthValidator } from "../../Auth/AuthValidator";
 /**
  * Register
  * 
- * Registration portal for KTech Field CRM.
+ * Registration portal for Prime Services CRM.
  * Default registration → Employee role (immediate access to employee dashboard).
  * Admin access requested → Pending user (stays in user table until admin approves).
  */
@@ -62,7 +62,7 @@ export default function Register() {
                         </svg>
                     </div>
                     <h1 className="text-3xl font-extrabold text-center tracking-tight text-slate-800">
-                        Join <span className="text-emerald-600">KTech CRM</span>
+                        Join <span className="text-emerald-600">Prime Services CRM</span>
                     </h1>
                     <p className="text-center text-sm text-slate-500 mt-2 font-medium">Register as a Field Engineer</p>
                 </div>

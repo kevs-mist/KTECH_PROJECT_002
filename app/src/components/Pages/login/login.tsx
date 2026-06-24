@@ -94,7 +94,7 @@ export default function Login() {
                                 value={username}
                                 onChange={(e) => setUsername(e.target.value)}
                                 className="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-lg px-4 py-3 outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all shadow-sm"
-                                placeholder="name@ktech.com"
+                                placeholder="name@prime.com"
                                 required
                                 disabled={isLoading || awaitingOtp}
                             />

@@ -182,7 +182,7 @@ export default function ResetPasswordPage() {
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
                                 className="bg-slate-50 border border-slate-200 px-4 py-3 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-sm"
-                                placeholder="name@ktech.com"
+                                placeholder="name@prime.com"
                                 required
                                 disabled={isLoading}
                             />
