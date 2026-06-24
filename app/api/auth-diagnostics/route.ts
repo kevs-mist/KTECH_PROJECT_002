@@ -29,35 +29,53 @@ function getErrorMessage(error: unknown) {
 }
 
 export async function GET(request: Request) {
-    const env = getEnvStatus();
+    if (process.env.NODE_ENV !== "development") {
+        return NextResponse.json({ error: "Not found" }, { status: 404 });
+    }
 
     try {
         const token = getBearerToken(request);
         if (!token) {
-            return NextResponse.json({ env, error: "Missing bearer token" }, { status: 401 });
+            return NextResponse.json({ error: "Missing bearer token" }, { status: 401 });
         }
 
         const decodedToken = await adminAuth.verifyIdToken(token);
         const supabase = createAdminClient();
 
-        const [{ data: userData, error: userError }, { data: adminData, error: adminError }, { data: employeeData, error: employeeError }] =
-            await Promise.all([
-                supabase
-                    .from("users")
-                    .select("firebase_uid, email, role")
-                    .eq("firebase_uid", decodedToken.uid)
-                    .maybeSingle(),
-                supabase
-                    .from("admins")
-                    .select("firebase_uid, is_super_admin, locked_until")
-                    .eq("firebase_uid", decodedToken.uid)
-                    .maybeSingle(),
-                supabase
-                    .from("employees")
-                    .select("firebase_uid, status")
-                    .eq("firebase_uid", decodedToken.uid)
-                    .maybeSingle(),
-            ]);
+        const userPromise = supabase
+            .from("users")
+            .select("firebase_uid, email, role")
+            .eq("firebase_uid", decodedToken.uid)
+            .maybeSingle();
+        const adminPromise = supabase
+            .from("admins")
+            .select("firebase_uid, is_super_admin, locked_until")
+            .eq("firebase_uid", decodedToken.uid)
+            .maybeSingle();
+        const employeePromise = supabase
+            .from("employees")
+            .select("firebase_uid, status")
+            .eq("firebase_uid", decodedToken.uid)
+            .maybeSingle();
+
+        const [userRes, adminRes, employeeRes] = await Promise.all([
+            userPromise,
+            adminPromise,
+            employeePromise
+        ]);
+
+        const userData = userRes.data;
+        const userError = userRes.error;
+        const adminData = adminRes.data;
+        const adminError = adminRes.error;
+        const employeeData = employeeRes.data;
+        const employeeError = employeeRes.error;
+
+        if (userError || !userData || userData.role !== "admin") {
+            return NextResponse.json({ error: "Forbidden: Admin access required" }, { status: 403 });
+        }
+
+        const env = getEnvStatus();
 
         return NextResponse.json({
             env,
@@ -82,6 +100,6 @@ export async function GET(request: Request) {
             },
         });
     } catch (error: unknown) {
-        return NextResponse.json({ env, error: getErrorMessage(error) }, { status: 500 });
+        return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 });
     }
 }

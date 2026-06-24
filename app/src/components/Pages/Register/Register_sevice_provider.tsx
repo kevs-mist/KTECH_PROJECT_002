@@ -2,7 +2,6 @@
 import { useState } from "react";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { auth } from "../../../lib/firebase";
-import { supabase } from "../../../lib/supabase";
 
 type RegisteredRole = "admin" | "employee" | "user";
 
@@ -19,58 +18,27 @@ export function register_service_provider() {
             const userCredential = await createUserWithEmailAndPassword(auth, email, password);
             const user = userCredential.user;
 
-            const isMainAdmin = email.toLowerCase() === "admin@company.com";
-            const registeredRole: RegisteredRole = isMainAdmin
-                ? "admin"
-                : isAdminRequested
-                  ? "user"
-                  : "employee";
+            // 2. Call server-side API to create user profile in Supabase
+            const idToken = await user.getIdToken();
+            const response = await fetch("/api/auth/register", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${idToken}`,
+                },
+                body: JSON.stringify({ name, isAdminRequested }),
+            });
 
-            // 2. Store User Profile Data in Supabase
-            const { error: supabaseError } = await supabase
-                .from("users")
-                .insert([
-                    {
-                        firebase_uid: user.uid,
-                        email: email,
-                        full_name: name,
-                        role: registeredRole,
-                        created_at: new Date().toISOString()
-                    }
-                ]);
-
-            if (supabaseError) {
-
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                const errorMessage = errorData.error || `Server returned status ${response.status}`;
+                // Roll back Firebase user creation
                 await user.delete();
-                throw new Error("Failed to save user data: " + supabaseError.message);
+                throw new Error("Failed to save user data: " + errorMessage);
             }
 
-            // 3. Handle Admin Logic
-            if (isMainAdmin) {
-                // Auto-approve Preset super admin
-                const { error: adminErr } = await supabase.from("admins").insert([{
-                    firebase_uid: user.uid,
-                    secret_code: "123456", // Default OTP for testing
-                    is_super_admin: true
-                }]);
-                
-                if (adminErr) {
-                    throw new Error("Admin profile creation failed: " + adminErr.message);
-                }
-                console.log("Super Admin auto-created.");
-            } else if (isAdminRequested) {
-                // Submit admin request for others
-                const { error: reqErr } = await supabase.from("admin_requests").insert([{
-                    firebase_uid: user.uid,
-                    email: email,
-                    status: "pending"
-                }]);
-                
-                if (reqErr) {
-                    throw new Error("Admin request failed: " + reqErr.message);
-                }
-                console.log("Admin request submitted for approval.");
-            }
+            const data = await response.json();
+            const registeredRole: RegisteredRole = data.role;
 
             console.log("Registration complete. User saved to Firebase and Supabase.");
             return { success: true, user: { ...user, role: registeredRole } };
@@ -85,3 +53,4 @@ export function register_service_provider() {
 
     return { register, isLoading, error };
 }
+

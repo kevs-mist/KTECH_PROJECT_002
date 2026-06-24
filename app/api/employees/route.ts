@@ -21,7 +21,9 @@ export async function GET(request: Request) {
         const token = requireToken(request);
         return NextResponse.json(await getEmployeesAction(token));
     } catch (error: unknown) {
-        return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 });
+        const message = getErrorMessage(error);
+        const status = message.toLowerCase().includes("unauthorized") ? 401 : 500;
+        return NextResponse.json({ error: message }, { status });
     }
 }
 
@@ -37,6 +39,8 @@ export async function POST(request: Request) {
         await setEmployeeOnlineStatusAction(token, !!body.isOnline);
         return NextResponse.json({ success: true });
     } catch (error: unknown) {
-        return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 });
+        const message = getErrorMessage(error);
+        const status = message.toLowerCase().includes("unauthorized") ? 401 : 500;
+        return NextResponse.json({ error: message }, { status });
     }
 }

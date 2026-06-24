@@ -5,6 +5,7 @@ import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "../src/lib/firebase";
 import { supabase } from "../src/lib/supabase";
 import { parseJsonResponse } from "../src/lib/apiClient";
+import AdminRoute from "../src/components/Routes/Admin_route";
 
 type AuthDiagnostics = Record<string, unknown>;
 
@@ -13,7 +14,7 @@ type AuthDiagnostics = Record<string, unknown>;
  * 
  * A developer tool to verify connectivity with Firebase Auth and Supabase.
  */
-export default function ConnectionDiagnostics() {
+function ConnectionDiagnostics() {
     const [firebaseStatus, setFirebaseStatus] = useState<"checking" | "connected" | "error">("checking");
     const [supabaseStatus, setSupabaseStatus] = useState<"checking" | "connected" | "error">("checking");
     const [firebaseError, setFirebaseError] = useState<string | null>(null);
@@ -144,3 +145,15 @@ export default function ConnectionDiagnostics() {
         </div>
     );
 }
+
+export default function DiagnosticsPage() {
+    if (process.env.NODE_ENV !== "development") {
+        return null;
+    }
+    return (
+        <AdminRoute>
+            <ConnectionDiagnostics />
+        </AdminRoute>
+    );
+}
+

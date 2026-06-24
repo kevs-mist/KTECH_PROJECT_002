@@ -17,6 +17,8 @@ export default function CreateTicketModal({ isOpen, onClose, onSuccess }: Create
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [employees, setEmployees] = useState<EmployeeProfile[]>([]);
+    const [employeesLoading, setEmployeesLoading] = useState(false);
+    const [employeesError, setEmployeesError] = useState<string | null>(null);
 
     const [formData, setFormData] = useState({
         title: "",
@@ -32,9 +34,17 @@ export default function CreateTicketModal({ isOpen, onClose, onSuccess }: Create
     // Fetch engineers when modal opens
     useEffect(() => {
         if (isOpen) {
+            setEmployeesLoading(true);
+            setEmployeesError(null);
             employeeService.getEmployees()
                 .then(setEmployees)
-                .catch(err => console.error("Could not load engineers:", err));
+                .catch(err => {
+                    console.error("Could not load engineers:", err);
+                    setEmployeesError("Failed to load engineers list.");
+                })
+                .finally(() => {
+                    setEmployeesLoading(false);
+                });
         }
     }, [isOpen]);
 
@@ -178,15 +188,24 @@ export default function CreateTicketModal({ isOpen, onClose, onSuccess }: Create
                                 value={formData.assigned_to}
                                 onChange={(e) => setFormData({...formData, assigned_to: e.target.value})}
                                 className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all appearance-none"
+                                disabled={employeesLoading}
                             >
-                                <option className="bg-[#0f172a]" value="">— Open Pool (unassigned) —</option>
-                                {employees
-                                    .filter(emp => emp.status === 'active')
-                                    .map(emp => (
-                                    <option key={emp.firebase_uid} className="bg-[#0f172a]" value={emp.firebase_uid}>
-                                        {emp.full_name || emp.email} ({emp.employee_id}) — {emp.active_tickets} active
-                                    </option>
-                                ))}
+                                {employeesLoading ? (
+                                    <option className="bg-[#0f172a]" value="" disabled>Loading engineers list...</option>
+                                ) : employeesError ? (
+                                    <option className="bg-[#0f172a]" value="" disabled>{employeesError}</option>
+                                ) : (
+                                    <>
+                                        <option className="bg-[#0f172a]" value="">— Open Pool (unassigned) —</option>
+                                        {employees
+                                            .filter(emp => emp.status === 'active')
+                                            .map(emp => (
+                                                <option key={emp.firebase_uid} className="bg-[#0f172a]" value={emp.firebase_uid}>
+                                                    {emp.full_name || emp.email} ({emp.employee_id}) — {emp.active_tickets} active
+                                                </option>
+                                            ))}
+                                    </>
+                                )}
                             </select>
                         </div>
                     </div>

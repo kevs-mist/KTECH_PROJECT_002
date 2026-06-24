@@ -20,10 +20,12 @@ export default function Login() {
     const [isAdminMode, setIsAdminMode] = useState(false);
     const [awaitingOtp, setAwaitingOtp] = useState(false);
     const [validationError, setValidationError] = useState<string | null>(null);
+    const [infoMessage, setInfoMessage] = useState<string | null>(null);
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
         setValidationError(null);
+        setInfoMessage(null);
 
         // Phase 2: OTP Verification
         if (awaitingOtp) {
@@ -46,12 +48,12 @@ export default function Login() {
         if (res?.success && res.requires_otp) {
             setAwaitingOtp(true);
             setIsAdminMode(true);
-            setValidationError("Admin account verified. Enter your Security Code below.");
+            setInfoMessage("Admin account verified. Enter your Security Code below.");
         }
     };
 
-    const displayError = serverError || (!awaitingOtp ? validationError : null);
-    const displayInfo = awaitingOtp ? validationError : null;
+    const displayError = serverError || validationError;
+    const displayInfo = infoMessage;
 
     return (
         <div className="login-container min-h-screen flex items-center justify-center p-4 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-indigo-50 via-white to-blue-50">
@@ -75,21 +77,22 @@ export default function Login() {
 
                 <div className="login-body relative z-10">
                     {displayError && (
-                        <div className="mb-6 p-4 bg-red-50 border-l-4 border-red-500 text-red-700 rounded text-[10px] uppercase font-bold flex items-center gap-3">
+                        <div id="login-error-msg" role="alert" aria-live="assertive" className="mb-6 p-4 bg-red-50 border-l-4 border-red-500 text-red-700 rounded text-[10px] uppercase font-bold flex items-center gap-3">
                             <span className="flex-1">{displayError}</span>
                         </div>
                     )}
 
                     {displayInfo && (
-                        <div className="mb-6 p-4 bg-emerald-50 border-l-4 border-emerald-500 text-emerald-700 rounded text-[10px] uppercase font-bold flex items-center gap-3 animate-in fade-in slide-in-from-top-2 duration-300">
+                        <div role="status" aria-live="polite" className="mb-6 p-4 bg-emerald-50 border-l-4 border-emerald-500 text-emerald-700 rounded text-[10px] uppercase font-bold flex items-center gap-3 animate-in fade-in slide-in-from-top-2 duration-300">
                             <span className="flex-1">{displayInfo}</span>
                         </div>
                     )}
 
                     <form className="space-y-4" onSubmit={handleLogin}>
                         <div className="form-group flex flex-col group">
-                            <label className="text-[10px] font-bold mb-1.5 text-slate-400 uppercase tracking-widest group-focus-within:text-emerald-600 transition-colors">Staff Email</label>
+                            <label htmlFor="staff-email" className="text-[10px] font-bold mb-1.5 text-slate-400 uppercase tracking-widest group-focus-within:text-emerald-600 transition-colors">Staff Email</label>
                             <input
+                                id="staff-email"
                                 type="email"
                                 value={username}
                                 onChange={(e) => setUsername(e.target.value)}
@@ -97,11 +100,14 @@ export default function Login() {
                                 placeholder="name@prime.com"
                                 required
                                 disabled={isLoading || awaitingOtp}
+                                aria-describedby={displayError ? "login-error-msg" : undefined}
+                                aria-invalid={!!displayError}
                             />
                         </div>
                         <div className="form-group flex flex-col group">
-                            <label className="text-[10px] font-bold mb-1.5 text-slate-400 uppercase tracking-widest group-focus-within:text-emerald-600 transition-colors">Access Password</label>
+                            <label htmlFor="access-password" className="text-[10px] font-bold mb-1.5 text-slate-400 uppercase tracking-widest group-focus-within:text-emerald-600 transition-colors">Access Password</label>
                             <input
+                                id="access-password"
                                 type="password"
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
@@ -109,13 +115,16 @@ export default function Login() {
                                 placeholder="••••••••"
                                 required
                                 disabled={isLoading || awaitingOtp}
+                                aria-describedby={displayError ? "login-error-msg" : undefined}
+                                aria-invalid={!!displayError}
                             />
                         </div>
 
                         {isAdminMode && (
                             <div className="form-group flex flex-col group mt-4 animate-in fade-in slide-in-from-top-2 duration-300">
-                                <label className="text-[10px] font-bold mb-1.5 text-emerald-600 uppercase tracking-widest italic">Security Code (Required for Admin)</label>
+                                <label htmlFor="security-code" className="text-[10px] font-bold mb-1.5 text-emerald-600 uppercase tracking-widest italic">Security Code (Required for Admin)</label>
                                 <input
+                                    id="security-code"
                                     type="text"
                                     value={otp}
                                     onChange={(e) => setOtp(e.target.value)}
@@ -124,6 +133,8 @@ export default function Login() {
                                     required={isAdminMode}
                                     disabled={isLoading}
                                     autoFocus
+                                    aria-describedby={displayError ? "login-error-msg" : undefined}
+                                    aria-invalid={!!displayError}
                                 />
                             </div>
                         )}

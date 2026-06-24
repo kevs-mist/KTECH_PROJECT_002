@@ -2,12 +2,12 @@ import { type NextRequest } from 'next/server'
 import { createClient } from '@/utils/supabase/proxy'
 
 export async function proxy(request: NextRequest) {
-  const response = createClient(request)
+  const response = await createClient(request)
 
   // 1. Strict Content Security Policy (CSP)
   const cspHeader = `
     default-src 'self';
-    script-src 'self' 'unsafe-inline' 'unsafe-eval' https://apis.google.com https://www.gstatic.com;
+    script-src 'self' 'unsafe-inline' https://apis.google.com https://www.gstatic.com;
     style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
     img-src 'self' blob: data: https://*.supabase.co https://*.google.com https://*.googleapis.com https://www.gstatic.com;
     media-src 'self' blob: data: https://*.supabase.co;

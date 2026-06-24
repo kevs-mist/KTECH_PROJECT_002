@@ -30,10 +30,16 @@ export default function EmployeeRoute({ children }: { children: React.ReactNode 
     // 1. Loading State (auth OR role-fetch in flight)
     if (roleLoading) {
         return (
-            <div className="flex items-center justify-center min-h-screen bg-slate-50">
+            <div 
+                role="status"
+                aria-label="Loading"
+                aria-live="polite"
+                className="flex items-center justify-center min-h-screen bg-slate-50"
+            >
                 <div className="flex flex-col items-center gap-4">
-                    <div className="w-12 h-12 border-4 border-emerald-200 border-t-emerald-600 rounded-full animate-spin"></div>
+                    <div className="w-12 h-12 border-4 border-emerald-200 border-t-emerald-600 rounded-full animate-spin" aria-hidden="true"></div>
                     <p className="text-slate-500 font-medium">Verifying Staff Status...</p>
+                    <span className="sr-only">Verifying Staff Status, please wait...</span>
                 </div>
             </div>
         );

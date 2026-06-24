@@ -81,15 +81,12 @@ export async function verifyAdminOtpAction(idToken: string, otp: string) {
 
         // 3. Verify OTP (Handles both hashed and plaintext for migration period)
         let isMatch = false;
-        let needsHashing = false;
         
         // Check if the stored code is a bcrypt hash (starts with $2a$, $2b$, or $2y$)
         if (data.secret_code && data.secret_code.startsWith('$2')) {
             isMatch = await bcrypt.compare(otp, data.secret_code);
         } else {
-            // Fallback for plaintext 
-            isMatch = data.secret_code === otp;
-            if (isMatch) needsHashing = true;
+            throw new Error("Security code must be reset by an administrator.");
         }
 
         if (!isMatch) {
@@ -120,11 +117,6 @@ export async function verifyAdminOtpAction(idToken: string, otp: string) {
             locked_until: null, 
             last_access: new Date().toISOString() 
         };
-
-        // Auto-hash during migration (S-02)
-        if (needsHashing) {
-            updates.secret_code = await bcrypt.hash(otp, 10);
-        }
 
         await supabase
             .from("admins")
@@ -160,9 +152,11 @@ export async function generatePasswordResetLinkAction(email: string) {
             // Ignore parse errors, fallback to raw link
         }
         
-        console.log("\n🔑 [DEV MODE] GENERATED PASSWORD RESET LINK:");
-        console.log(customLink);
-        console.log("=========================================\n");
+        if (process.env.NODE_ENV === "development") {
+            console.log("\n🔑 [DEV MODE] GENERATED PASSWORD RESET LINK:");
+            console.log(customLink);
+            console.log("=========================================\n");
+        }
 
         return { success: true, link: customLink };
     } catch (error: unknown) {

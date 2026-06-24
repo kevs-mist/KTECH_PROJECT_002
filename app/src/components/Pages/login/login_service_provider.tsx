@@ -10,19 +10,6 @@ function getErrorMessage(error: unknown) {
     return error instanceof Error ? error.message : String(error);
 }
 
-async function logAuthDiagnostics() {
-    try {
-        const token = await auth.currentUser?.getIdToken(true);
-        if (!token) return;
-
-        const response = await fetch("/api/auth-diagnostics", {
-            headers: { Authorization: `Bearer ${token}` },
-        });
-        console.warn("Auth diagnostics:", await parseJsonResponse(response, "/api/auth-diagnostics"));
-    } catch (diagnosticError) {
-        console.warn("Auth diagnostics request failed:", getErrorMessage(diagnosticError));
-    }
-}
 
 async function fetchUserRole(idToken: string) {
     const response = await fetch("/api/auth/role", {
@@ -86,7 +73,6 @@ export function useLoginServiceProvider() {
             return { success: true, user: firebaseUser };
         } catch (err: unknown) {
             console.warn("Login Error:", getErrorMessage(err));
-            await logAuthDiagnostics();
             await signOut(auth);
             const friendlyMessage = ErrorHandler.format(err, "Invalid credentials.");
             setError(friendlyMessage);

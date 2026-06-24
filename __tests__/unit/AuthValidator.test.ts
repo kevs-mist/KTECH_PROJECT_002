@@ -23,13 +23,13 @@ describe('AuthValidator - validatePassword (loose)', () => {
         expect(AuthValidator.validatePassword('')).toBe('Password is required.');
     });
 
-    it('should return error if password is less than 6 chars', () => {
-        expect(AuthValidator.validatePassword('12345')).toBe('Password must be at least 6 characters long.');
+    it('should return error if password is less than 8 chars', () => {
+        expect(AuthValidator.validatePassword('1234567')).toBe('Password must be at least 8 characters long.');
     });
 
     it('should accept passwords without uppercase or numbers', () => {
-        expect(AuthValidator.validatePassword('abcdef')).toBeNull();
-        expect(AuthValidator.validatePassword('123456')).toBeNull();
+        expect(AuthValidator.validatePassword('abcdefgh')).toBeNull();
+        expect(AuthValidator.validatePassword('12345678')).toBeNull();
     });
 });
 
@@ -38,20 +38,24 @@ describe('AuthValidator - validateStrongPassword (strict)', () => {
         expect(AuthValidator.validateStrongPassword('')).toBe('Password is required.');
     });
 
-    it('should return error if password is less than 6 chars', () => {
-        expect(AuthValidator.validateStrongPassword('Ab123')).toBe('Password must be at least 6 characters long.');
+    it('should return error if password is less than 8 chars', () => {
+        expect(AuthValidator.validateStrongPassword('Ab12345')).toBe('Password must be at least 8 characters long.');
     });
 
     it('should return error if password has no uppercase letter', () => {
-        expect(AuthValidator.validateStrongPassword('abcdef1')).toBe('Password must contain at least one uppercase letter.');
+        expect(AuthValidator.validateStrongPassword('abcdefg1!')).toBe('Password must contain at least one uppercase letter.');
     });
 
     it('should return error if password has no number', () => {
-        expect(AuthValidator.validateStrongPassword('Abcdef')).toBe('Password must contain at least one number.');
+        expect(AuthValidator.validateStrongPassword('Abcdefg!')).toBe('Password must contain at least one number.');
+    });
+
+    it('should return error if password has no special character', () => {
+        expect(AuthValidator.validateStrongPassword('Abcdefg1')).toBe('Password must contain at least one special character.');
     });
 
     it('should accept password meeting all criteria', () => {
-        expect(AuthValidator.validateStrongPassword('Abcdef1')).toBeNull();
+        expect(AuthValidator.validateStrongPassword('Abcdefg1!')).toBeNull();
     });
 });
 
@@ -67,10 +71,10 @@ describe('AuthValidator - validateConfirmPassword', () => {
 
 describe('AuthValidator - validateRegistration', () => {
     it('should validate complete registration inputs', () => {
-        expect(AuthValidator.validateRegistration('', 'Abcdef1', 'Abcdef1', 'John Doe')).toBe('Email is required.');
-        expect(AuthValidator.validateRegistration('john@ktech.com', 'abc', 'abc', 'John Doe')).toBe('Password must be at least 6 characters long.');
-        expect(AuthValidator.validateRegistration('john@ktech.com', 'Abcdef1', 'Abcdef2', 'John Doe')).toBe('Passwords do not match.');
-        expect(AuthValidator.validateRegistration('john@ktech.com', 'Abcdef1', 'Abcdef1', '  ')).toBe('Full name is required.');
-        expect(AuthValidator.validateRegistration('john@ktech.com', 'Abcdef1', 'Abcdef1', 'John Doe')).toBeNull();
+        expect(AuthValidator.validateRegistration('', 'Abcdefg1!', 'Abcdefg1!', 'John Doe')).toBe('Email is required.');
+        expect(AuthValidator.validateRegistration('john@ktech.com', 'abc', 'abc', 'John Doe')).toBe('Password must be at least 8 characters long.');
+        expect(AuthValidator.validateRegistration('john@ktech.com', 'Abcdefg1!', 'Abcdefg1@', 'John Doe')).toBe('Passwords do not match.');
+        expect(AuthValidator.validateRegistration('john@ktech.com', 'Abcdefg1!', 'Abcdefg1!', '  ')).toBe('Full name is required.');
+        expect(AuthValidator.validateRegistration('john@ktech.com', 'Abcdefg1!', 'Abcdefg1!', 'John Doe')).toBeNull();
     });
 });

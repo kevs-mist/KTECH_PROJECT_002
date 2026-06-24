@@ -47,13 +47,14 @@ export async function POST(request: Request) {
         }
 
         let isMatch = false;
-        let needsHashing = false;
 
         if (data.secret_code && data.secret_code.startsWith("$2")) {
             isMatch = await bcrypt.compare(otp, data.secret_code);
         } else {
-            isMatch = data.secret_code === otp;
-            needsHashing = isMatch;
+            return NextResponse.json(
+                { error: "Security code must be reset by an administrator." },
+                { status: 400 }
+            );
         }
 
         if (!isMatch) {
@@ -86,10 +87,6 @@ export async function POST(request: Request) {
             locked_until: null,
             last_access: new Date().toISOString(),
         };
-
-        if (needsHashing) {
-            updates.secret_code = await bcrypt.hash(otp, 10);
-        }
 
         await supabase
             .from("admins")

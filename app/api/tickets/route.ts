@@ -61,7 +61,9 @@ export async function GET(request: Request) {
         const { getTicketsAction } = await import("../../src/lib/actions/ticketActions");
         return NextResponse.json(await getTicketsAction(token));
     } catch (error: unknown) {
-        return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 });
+        const message = getErrorMessage(error);
+        const status = message.toLowerCase().includes("unauthorized") ? 401 : 500;
+        return NextResponse.json({ error: message }, { status });
     }
 }
 
@@ -101,6 +103,8 @@ export async function POST(request: Request) {
                 return NextResponse.json({ error: "Unknown ticket operation" }, { status: 400 });
         }
     } catch (error: unknown) {
-        return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 });
+        const message = getErrorMessage(error);
+        const status = message.toLowerCase().includes("unauthorized") ? 401 : 500;
+        return NextResponse.json({ error: message }, { status });
     }
 }
