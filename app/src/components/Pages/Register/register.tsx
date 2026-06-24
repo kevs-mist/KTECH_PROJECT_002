@@ -69,7 +69,7 @@ export default function Register() {
                 
                 <div className="register-body relative z-10">
                     {displayError && (
-                        <div className="mb-6 p-4 bg-red-50 border-l-4 border-red-500 text-red-700 rounded shadow-sm text-xs flex items-center gap-3">
+                        <div id="register-error-msg" role="alert" aria-live="assertive" className="mb-6 p-4 bg-red-50 border-l-4 border-red-500 text-red-700 rounded shadow-sm text-xs flex items-center gap-3">
                             <span className="flex-1">{displayError}</span>
                         </div>
                     )}
@@ -84,6 +84,8 @@ export default function Register() {
                                 onChange={(e) => setName(e.target.value)}
                                 className="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-lg px-4 py-2.5 outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all shadow-sm" 
                                 required placeholder="John Doe" disabled={isLoading}
+                                aria-describedby={displayError ? "register-error-msg" : undefined}
+                                aria-invalid={!!displayError}
                             />
                         </div>
 
@@ -96,6 +98,8 @@ export default function Register() {
                                 onChange={(e) => setEmail(e.target.value)}
                                 className="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-lg px-4 py-2.5 outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all shadow-sm" 
                                 required placeholder="john@example.com" disabled={isLoading}
+                                aria-describedby={displayError ? "register-error-msg" : undefined}
+                                aria-invalid={!!displayError}
                             />
                         </div>
 
@@ -109,6 +113,8 @@ export default function Register() {
                                     onChange={(e) => setPassword(e.target.value)}
                                     className="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-lg px-4 py-2.5 outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all shadow-sm" 
                                     required placeholder="••••••••" disabled={isLoading}
+                                    aria-describedby={displayError ? "register-error-msg" : undefined}
+                                    aria-invalid={!!displayError}
                                 />
                             </div>
 
@@ -121,6 +127,8 @@ export default function Register() {
                                     onChange={(e) => setConfirmPassword(e.target.value)}
                                     className="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-lg px-4 py-2.5 outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all shadow-sm" 
                                     required placeholder="••••••••" disabled={isLoading}
+                                    aria-describedby={displayError ? "register-error-msg" : undefined}
+                                    aria-invalid={!!displayError}
                                 />
                             </div>
                         </div>
