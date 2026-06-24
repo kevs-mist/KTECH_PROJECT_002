@@ -33,9 +33,8 @@ export async function getTicketsAction(idToken: string) {
     if (role === "admin") {
         query = query.order("created_at", { ascending: false });
     } else if (role === "employee") {
-        query = query
-            .or(`assigned_to.eq.${uid},and(status.eq.open,assigned_to.is.null)`)
-            .order("created_at", { ascending: false });
+        // Temporarily fetch all tickets to debug data mismatch
+        query = query.order("created_at", { ascending: false });
     } else {
         query = query.eq("created_by", uid).order("created_at", { ascending: false });
     }
