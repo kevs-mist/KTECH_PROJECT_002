@@ -26,6 +26,7 @@ import { unstable_noStore as noStore } from "next/cache";
 export async function getTicketsAction(idToken: string) {
     noStore();
     const { role, uid } = await verifyUserRoleAction(idToken);
+    console.log("getTicketsAction - role:", role, "uid:", uid);
     const supabase = createAdminClient();
 
     let query = supabase.from("tickets").select("*");
@@ -40,6 +41,7 @@ export async function getTicketsAction(idToken: string) {
     }
 
     const { data, error } = await query;
+    console.log("getTicketsAction - data count:", data?.length, "error:", error);
     if (error) throw error;
     return data;
 }
