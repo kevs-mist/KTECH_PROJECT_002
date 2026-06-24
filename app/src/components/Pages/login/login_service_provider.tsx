@@ -50,7 +50,7 @@ export function useLoginServiceProvider() {
             // Server verification using ID Token
             const idToken = await firebaseUser.getIdToken(true);
             const role = await fetchUserRole(idToken);
-            
+
             if (role === "admin") {
                 // User is admin, do NOT redirect yet. Return flag for UI to show OTP.
                 setIsLoading(false);
@@ -68,8 +68,15 @@ export function useLoginServiceProvider() {
                 return { success: true, user: firebaseUser };
             }
 
-            // Default User Dashboard
-            router.push("/dashboard"); 
+            // If role is "user" but they should be employee, redirect to employee dashboard
+            // This handles cases where the role wasn't properly set in the database
+            if (role === "user") {
+                router.push("/employee/dashboard");
+                return { success: true, user: firebaseUser };
+            }
+
+            // Fallback to employee dashboard for any other role
+            router.push("/employee/dashboard"); 
             return { success: true, user: firebaseUser };
         } catch (err: unknown) {
             console.warn("Login Error:", getErrorMessage(err));
