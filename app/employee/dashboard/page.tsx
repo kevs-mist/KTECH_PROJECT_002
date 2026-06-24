@@ -83,7 +83,9 @@ export default function EmployeeDashboard() {
         setIsLoading(true);
         try {
             if (!user) return;
+            console.log("Fetching tickets for user:", user.uid);
             const data = await ticketService.getEmployeeTickets();
+            console.log("Fetched tickets:", data);
             setTickets(data);
         } catch (error) {
             console.error("Failed to fetch tickets:", error);
