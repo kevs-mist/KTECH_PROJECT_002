@@ -20,7 +20,6 @@ export async function verifyUserRoleAction(idToken: string) {
         // 1. Verify the ID Token server-side
         const decodedToken = await adminAuth.verifyIdToken(idToken);
         const uid = decodedToken.uid;
-        console.log("verifyUserRoleAction - UID:", uid);
 
         // 2. Query Supabase using Admin Client (Bypasses RLS to find the record safely)
         const supabase = createAdminClient();
@@ -33,26 +32,11 @@ export async function verifyUserRoleAction(idToken: string) {
             .maybeSingle();
 
         if (adminData) {
-            console.log("Role: admin");
             return { role: "admin" as const, uid, adminId: adminData.id };
         }
 
-        // Check Employee
-        const { data: employeeData } = await supabase
-            .from("employees")
-            .select("id")
-            .eq("firebase_uid", uid)
-            .maybeSingle();
-
-        console.log("Employee data:", employeeData);
-
-        if (employeeData) {
-            console.log("Role: employee");
-            return { role: "employee" as const, uid, employeeId: employeeData.id };
-        }
-
-        console.log("Role: user");
-        return { role: "user" as const, uid };
+        // All non-admin users are treated as employees
+        return { role: "employee" as const, uid };
     } catch (error: unknown) {
         console.error("Server Auth Error:", getErrorMessage(error));
         throw new Error("Authentication failed. Please ensure you are logged in correctly.");

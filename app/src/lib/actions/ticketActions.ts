@@ -26,7 +26,6 @@ import { unstable_noStore as noStore } from "next/cache";
 export async function getTicketsAction(idToken: string) {
     noStore();
     const { role, uid } = await verifyUserRoleAction(idToken);
-    console.log("getTicketsAction - role:", role, "uid:", uid);
     const supabase = createAdminClient();
 
     let query = supabase.from("tickets").select("*");
@@ -34,14 +33,14 @@ export async function getTicketsAction(idToken: string) {
     if (role === "admin") {
         query = query.order("created_at", { ascending: false });
     } else if (role === "employee") {
-        // Fetch ALL tickets without any filter to debug
+        // Fetch tickets assigned to this employee OR open/unassigned tickets
+        query = query.or(`assigned_to.eq.${uid},and(status.eq.open,assigned_to.is.null)`);
         query = query.order("created_at", { ascending: false });
     } else {
         query = query.eq("created_by", uid).order("created_at", { ascending: false });
     }
 
     const { data, error } = await query;
-    console.log("getTicketsAction - data count:", data?.length, "error:", error);
     if (error) throw error;
     return data;
 }
