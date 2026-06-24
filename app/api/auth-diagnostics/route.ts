@@ -93,9 +93,9 @@ export async function GET(request: Request) {
                 employeeStatus: employeeData?.status ?? null,
                 adminLockedUntil: adminData?.locked_until ?? null,
                 errors: {
-                    user: userError?.message ?? null,
-                    admin: adminError?.message ?? null,
-                    employee: employeeError?.message ?? null,
+                    user: (userError as any)?.message ?? null,
+                    admin: (adminError as any)?.message ?? null,
+                    employee: (employeeError as any)?.message ?? null,
                 },
             },
         });

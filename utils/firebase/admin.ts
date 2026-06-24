@@ -1,6 +1,6 @@
-import * as admin from "firebase-admin";
+import admin from "firebase-admin";
 
-if (!admin.apps.length) {
+if (!(admin as any).apps?.length) {
     const privateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n').replace(/^["']|["']$/g, '');
     const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
     const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
@@ -16,7 +16,7 @@ if (!admin.apps.length) {
     }
 
     admin.initializeApp({
-        credential: admin.credential.cert({
+        credential: (admin as any).credential.cert({
             projectId,
             clientEmail,
             privateKey,
@@ -24,4 +24,4 @@ if (!admin.apps.length) {
     });
 }
 
-export const adminAuth = admin.auth();
+export const adminAuth = (admin as any).auth();
