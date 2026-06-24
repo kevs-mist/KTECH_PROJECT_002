@@ -1,12 +1,14 @@
 import { NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { createAdminClient } from '../../../../utils/supabase/admin';
-import { verifyUserRoleAction } from '../../../src/lib/actions/authActions';
+import { getAdminAuth } from '../../../../utils/firebase/admin';
 
 function getBearerToken(request: Request) {
   const authHeader = request.headers.get('authorization');
   return authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
 }
+
+export const dynamic = 'force-dynamic';
 
 export async function POST(request: Request) {
   try {
@@ -15,12 +17,23 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { role } = await verifyUserRoleAction(token);
-    if (role !== 'admin') {
+    // Verify user role using Firebase Admin
+    const adminAuth = getAdminAuth();
+    const decodedToken = await adminAuth.verifyIdToken(token);
+    const uid = decodedToken.uid;
+    const supabase = createAdminClient();
+
+    // Check if user is admin
+    const { data: adminData } = await supabase
+      .from('admins')
+      .select('id')
+      .eq('firebase_uid', uid)
+      .maybeSingle();
+
+    if (!adminData) {
       return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
     }
 
-    const supabase = createAdminClient();
     const { requestId, action, secretCode } = await request.json();
 
     if (!requestId || !['approve', 'reject'].includes(action)) {
