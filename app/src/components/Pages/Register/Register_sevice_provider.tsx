@@ -4,6 +4,8 @@ import { createUserWithEmailAndPassword } from "firebase/auth";
 import { auth } from "../../../lib/firebase";
 import { supabase } from "../../../lib/supabase";
 
+type RegisteredRole = "admin" | "employee" | "user";
+
 export function register_service_provider() {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -18,6 +20,11 @@ export function register_service_provider() {
             const user = userCredential.user;
 
             const isMainAdmin = email.toLowerCase() === "admin@company.com";
+            const registeredRole: RegisteredRole = isMainAdmin
+                ? "admin"
+                : isAdminRequested
+                  ? "user"
+                  : "employee";
 
             // 2. Store User Profile Data in Supabase
             const { error: supabaseError } = await supabase
@@ -27,7 +34,7 @@ export function register_service_provider() {
                         firebase_uid: user.uid,
                         email: email,
                         full_name: name,
-                        role: isMainAdmin ? "admin" : "user",
+                        role: registeredRole,
                         created_at: new Date().toISOString()
                     }
                 ]);
@@ -66,7 +73,7 @@ export function register_service_provider() {
             }
 
             console.log("Registration complete. User saved to Firebase and Supabase.");
-            return { success: true, user };
+            return { success: true, user: { ...user, role: registeredRole } };
         } catch (err: any) {
             console.warn("Registration error:", err.message);
             setError(err.message || "An unexpected error occurred during registration.");

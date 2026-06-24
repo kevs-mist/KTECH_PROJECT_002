@@ -36,9 +36,9 @@ export default function Register() {
         const res = await register(email, password, name, isAdminRequested);
 
         if (res.success) {
-            if (res.role === "admin") {
+            if (res.user?.role === "admin") {
                 router.push("/admin/dashboard");
-            } else if (res.role === "employee") {
+            } else if (res.user?.role === "employee") {
                 router.push("/employee/dashboard");
             } else {
                 // Pending admin request — user role, show a message or go to a waiting page
