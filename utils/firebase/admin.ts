@@ -23,7 +23,12 @@ export function getAdminAuth() {
     try {
         const admin = require("firebase-admin");
 
-        if (!admin.apps?.length) {
+        // Check if admin module loaded correctly
+        if (!admin || !admin.credential || !admin.credential.cert) {
+            throw new Error("Firebase Admin module did not load correctly - credential.cert is missing");
+        }
+
+        if (!admin.apps || !Array.isArray(admin.apps) || admin.apps.length === 0) {
             admin.initializeApp({
                 credential: admin.credential.cert({
                     projectId,
@@ -33,9 +38,14 @@ export function getAdminAuth() {
             });
         }
 
+        if (!admin.auth) {
+            throw new Error("Firebase Admin module did not load correctly - auth is missing");
+        }
+
         adminAuthInstance = admin.auth();
         return adminAuthInstance;
     } catch (error) {
+        console.error("Firebase Admin initialization error:", error);
         throw new Error(`Failed to initialize Firebase Admin: ${error instanceof Error ? error.message : String(error)}`);
     }
 }
