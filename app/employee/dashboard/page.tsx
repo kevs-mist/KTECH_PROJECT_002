@@ -189,7 +189,7 @@ export default function EmployeeDashboard() {
 
     const myTickets = tickets.filter(t => t.assigned_to === user?.uid && t.status !== 'closed');
     const resolvedTickets = tickets.filter(t => t.assigned_to === user?.uid && t.status === 'closed');
-    const availableTickets = tickets.filter(t => !t.assigned_to && t.status === "open");
+    const availableTickets = tickets; // Temporarily show all tickets to debug
 
 
     return (
