@@ -198,7 +198,7 @@ export default function EmployeeDashboard() {
             <nav className="flex justify-between items-center mb-10 bg-white p-6 rounded-[2.5rem] shadow-sm border border-slate-100">
                 <div className="flex items-center gap-4">
                     <img 
-                        src="/images/prime_services_logo.png" 
+                        src="/images/prime_services_logo.png?v=1" 
                         alt="Prime Services ATM Services & Maintenance" 
                         className="w-12 h-12 object-contain"
                     />

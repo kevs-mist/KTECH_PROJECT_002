@@ -360,7 +360,7 @@ export default function AdminDashboard() {
             <nav className="flex justify-between items-center px-8 py-6 border-b border-slate-800">
                 <div className="flex items-center gap-4">
                     <img 
-                        src="/images/prime_services_logo.png" 
+                        src="/images/prime_services_logo.png?v=1" 
                         alt="Prime Services ATM Services & Maintenance" 
                         className="w-12 h-12 object-contain"
                     />

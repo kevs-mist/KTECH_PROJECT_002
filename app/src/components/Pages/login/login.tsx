@@ -61,7 +61,7 @@ export default function Login() {
 
                 <div className="login-header mb-8 flex flex-col items-center">
                     <img 
-                        src="/images/prime_services_logo.png" 
+                        src="/images/prime_services_logo.png?v=1" 
                         alt="Prime Services ATM Services & Maintenance" 
                         className="w-24 h-24 object-contain mb-4"
                     />
