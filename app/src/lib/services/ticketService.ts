@@ -66,7 +66,7 @@ export const ticketService = {
 
     async getEmployeeTickets(): Promise<Ticket[]> {
         console.log("ticketService.getEmployeeTickets called");
-        const result = this.request<Ticket[]>("/api/tickets");
+        const result = await this.request<Ticket[]>("/api/tickets");
         console.log("ticketService.getEmployeeTickets result:", result);
         return result;
     },
