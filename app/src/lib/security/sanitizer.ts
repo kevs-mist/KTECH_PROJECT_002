@@ -1,4 +1,9 @@
-import DOMPurify from 'isomorphic-dompurify';
+import { JSDOM } from 'jsdom';
+import DOMPurifyFactory from 'dompurify';
+
+// Create a window for server-side DOMPurify
+const window = new JSDOM('').window;
+const DOMPurify = DOMPurifyFactory(window as any);
 
 /**
  * Sanitizes user input to prevent Cross-Site Scripting (XSS) attacks.
