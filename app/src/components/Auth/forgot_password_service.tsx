@@ -61,7 +61,12 @@ export default function ForgotPassword() {
 
         setIsLoading(true);
         try {
-            await sendPasswordResetEmail(auth, email);
+            const actionCodeSettings = {
+                url: typeof window !== "undefined" ? `${window.location.origin}/reset-password` : "http://localhost:3000/reset-password",
+                handleCodeInApp: true,
+            };
+            
+            await sendPasswordResetEmail(auth, email, actionCodeSettings);
             setSuccessMsg(`A password reset link has been sent to ${email}`);
         } catch (err: any) {
             console.warn("Forgot Password Error:", err.message);

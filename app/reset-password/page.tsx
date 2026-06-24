@@ -66,8 +66,8 @@ export default function ResetPasswordPage() {
 
         try {
             const actionCodeSettings = {
-                url: typeof window !== "undefined" ? `${window.location.origin}/login` : "http://localhost:3000/login",
-                handleCodeInApp: false,
+                url: typeof window !== "undefined" ? `${window.location.origin}/reset-password` : "http://localhost:3000/reset-password",
+                handleCodeInApp: true,
             };
             
             // 1. Try to send client-side reset email via Firebase
