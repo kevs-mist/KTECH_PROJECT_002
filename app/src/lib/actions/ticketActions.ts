@@ -25,9 +25,7 @@ import { unstable_noStore as noStore } from "next/cache";
  */
 export async function getTicketsAction(idToken: string) {
     noStore();
-    console.log("getTicketsAction called with idToken");
     const { role, uid } = await verifyUserRoleAction(idToken);
-    console.log("User role:", role, "UID:", uid);
     const supabase = createAdminClient();
 
     let query = supabase.from("tickets").select("*");
@@ -38,15 +36,11 @@ export async function getTicketsAction(idToken: string) {
         query = query
             .or(`assigned_to.eq.${uid},and(status.eq.open,assigned_to.is.null)`)
             .order("created_at", { ascending: false });
-        console.log("Employee query:", `assigned_to.eq.${uid},and(status.eq.open,assigned_to.is.null)`);
     } else {
         query = query.eq("created_by", uid).order("created_at", { ascending: false });
-        console.log("User query for created_by:", uid);
     }
 
     const { data, error } = await query;
-    console.log("Query result - data count:", data?.length, "error:", error);
-    console.log("Query result - data sample:", data?.slice(0, 2));
     if (error) throw error;
     return data;
 }

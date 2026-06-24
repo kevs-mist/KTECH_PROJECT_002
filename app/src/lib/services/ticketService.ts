@@ -65,10 +65,7 @@ export const ticketService = {
     },
 
     async getEmployeeTickets(): Promise<Ticket[]> {
-        console.log("ticketService.getEmployeeTickets called");
-        const result = await this.request<Ticket[]>("/api/tickets");
-        console.log("ticketService.getEmployeeTickets result:", result);
-        return result;
+        return this.request<Ticket[]>("/api/tickets");
     },
 
     async getAdminStats(): Promise<AdminStats> {
