@@ -33,8 +33,7 @@ export async function getTicketsAction(idToken: string) {
     if (role === "admin") {
         query = query.order("created_at", { ascending: false });
     } else if (role === "employee") {
-        // Fetch all open tickets (for testing - will refine later)
-        query = query.eq("status", "open");
+        // Fetch ALL tickets without any filter to debug
         query = query.order("created_at", { ascending: false });
     } else {
         query = query.eq("created_by", uid).order("created_at", { ascending: false });
