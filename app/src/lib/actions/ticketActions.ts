@@ -45,7 +45,8 @@ export async function getTicketsAction(idToken: string) {
     }
 
     const { data, error } = await query;
-    console.log("Query result - data:", data, "error:", error);
+    console.log("Query result - data count:", data?.length, "error:", error);
+    console.log("Query result - data sample:", data?.slice(0, 2));
     if (error) throw error;
     return data;
 }
