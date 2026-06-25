@@ -8,7 +8,7 @@ import {
     requireVerifiedUser,
 } from "../../../src/lib/server/apiSecurity";
 
-export async function GET(request: Request, context: RouteContext<"/api/atm/[atmId]">) {
+export async function GET(request: Request, context: { params: Promise<{ atmId: string }> }) {
   try {
     const limit = checkRateLimit({
       key: `atm:detail:${getClientIp(request)}`,

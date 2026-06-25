@@ -7,6 +7,7 @@ import { uploadMediaToStorage } from "../../src/lib/storageService";
 import { supabase } from "../../src/lib/supabase";
 import { debounce } from "../../src/lib/utils/debounce";
 import { ErrorHandler } from "../../src/lib/utils/errorHandler";
+import { sanitizeFileName } from "../../src/lib/utils/fileName";
 import TicketCheckInButton from "../components/TicketCheckInButton";
 
 export default function EmployeeDashboard() {
@@ -149,7 +150,7 @@ export default function EmployeeDashboard() {
         setIsActionLoading(true);
         setActionError(null);
         try {
-            const fileName = `tickets/${selectedTicket.id}/${Date.now()}_${selectedFile.name}`;
+            const fileName = `tickets/${selectedTicket.id}/${Date.now()}_${sanitizeFileName(selectedFile.name)}`;
             const downloadUrl = await uploadMediaToStorage(selectedFile, fileName, (p) => setUploadProgress(p));
 
             await ticketService.resolveTicket(selectedTicket.id, selectedTicket.version || 1, downloadUrl, actionNotes);
@@ -182,7 +183,7 @@ export default function EmployeeDashboard() {
         try {
             let downloadUrl = "";
             if (selectedFile) {
-                const fileName = `tickets/${selectedTicket.id}/${Date.now()}_escalation_${selectedFile.name}`;
+                const fileName = `tickets/${selectedTicket.id}/${Date.now()}_escalation_${sanitizeFileName(selectedFile.name)}`;
                 downloadUrl = await uploadMediaToStorage(selectedFile, fileName, (p) => setUploadProgress(p));
             }
 
