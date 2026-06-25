@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../../lib/AuthContext";
 
@@ -13,6 +13,12 @@ import { useAuth } from "../../lib/AuthContext";
 export default function AuthRoute({ children }: { children: React.ReactNode }) {
     const { user, loading } = useAuth();
     const router = useRouter();
+
+    useEffect(() => {
+        if (!loading && !user) {
+            router.replace("/login");
+        }
+    }, [loading, user, router]);
 
     if (loading) {
         return (
@@ -29,8 +35,6 @@ export default function AuthRoute({ children }: { children: React.ReactNode }) {
     }
 
     if (!user) {
-        // If no user, redirect to standard login
-        router.push("/login");
         return null;
     }
 

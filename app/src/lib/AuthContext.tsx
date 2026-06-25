@@ -64,6 +64,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return () => unsubscribe();
     }, []);
 
+    // Periodic role re-verification (every 30 seconds)
+    // This ensures if an admin promotes a user to employee, the UI updates in real-time
+    useEffect(() => {
+        if (!user || loading) return;
+
+        const interval = setInterval(async () => {
+            try {
+                const idToken = await user.getIdToken(true);
+                const verifiedRole = await fetchUserRole(idToken);
+                setRole(verifiedRole);
+            } catch (err) {
+                console.error("Background role verification error:", err);
+            }
+        }, 30000); // 30 seconds
+
+        return () => clearInterval(interval);
+    }, [user, loading]);
+
     // Handle Employee Online Status
     useEffect(() => {
         if (!loading && user && role === "employee") {

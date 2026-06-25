@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
-import { register_service_provider } from "./Register_sevice_provider";
+import { useRegisterServiceProvider } from "./Register_sevice_provider";
 import { AuthValidator } from "../../Auth/AuthValidator";
 
 /**
@@ -13,7 +13,7 @@ import { AuthValidator } from "../../Auth/AuthValidator";
  * Admin access requested → Pending user (stays in user table until admin approves).
  */
 export default function Register() {
-    const { register, isLoading, error: serverError } = register_service_provider();
+    const { register, isLoading, error: serverError } = useRegisterServiceProvider();
     const router = useRouter();
 
     const [name, setName] = useState("");

@@ -1,0 +1,71 @@
+name: Preproduction Checks
+
+on:
+  push:
+    branches: [ dev, preprod, main ]
+  pull_request:
+    branches: [ dev, preprod, main ]
+  workflow_dispatch:
+
+jobs:
+  install-and-validate:
+    name: Install, lint, typecheck, and test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run ESLint
+        run: npm run lint
+
+      - name: Run TypeScript type check
+        run: npm run check:ts
+
+      - name: Run unit and integration tests with coverage
+        run: npm run test:coverage
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: preproduction-coverage
+          path: coverage/
+          retention-days: 7
+
+  build-validation:
+    name: Build validation
+    runs-on: ubuntu-latest
+    needs: install-and-validate
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build Next.js application
+        run: npm run build
+        env:
+          NODE_ENV: production
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: preproduction-build
+          path: .next/
+          retention-days: 7

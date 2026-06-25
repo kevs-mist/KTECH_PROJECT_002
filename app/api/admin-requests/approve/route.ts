@@ -1,64 +1,56 @@
-import { NextResponse } from 'next/server';
-import bcrypt from 'bcryptjs';
-import { createAdminClient } from '../../../../utils/supabase/admin';
-import { adminAuth } from '../../../../utils/firebase/admin';
+import { NextResponse } from "next/server";
+import bcrypt from "bcryptjs";
+import { createAdminClient } from "../../../../utils/supabase/admin";
+import {
+  assertSameOrigin,
+  checkRateLimit,
+  getClientIp,
+  jsonError,
+  logAuditEvent,
+  rateLimitResponse,
+  requireAdmin,
+} from "../../../src/lib/server/apiSecurity";
 
-function getBearerToken(request: Request) {
-  const authHeader = request.headers.get('authorization');
-  return authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
-}
-
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 export async function POST(request: Request) {
   try {
-    const token = getBearerToken(request);
-    if (!token) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    assertSameOrigin(request);
 
-    // Verify user role using Firebase Admin
-    const decodedToken = await adminAuth.verifyIdToken(token);
-    const uid = decodedToken.uid;
-    const supabase = createAdminClient();
+    const limit = checkRateLimit({
+      key: `admin-requests:approve:${getClientIp(request)}`,
+      limit: 30,
+      windowMs: 60 * 1000,
+    });
+    if (!limit.success) return rateLimitResponse(limit.resetAt);
 
-    // Check if user is admin
-    const { data: adminData } = await supabase
-      .from('admins')
-      .select('id')
-      .eq('firebase_uid', uid)
-      .maybeSingle();
-
-    if (!adminData) {
-      return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
-    }
-
+    const admin = await requireAdmin(request);
     const { requestId, action, secretCode } = await request.json();
 
-    if (!requestId || !['approve', 'reject'].includes(action)) {
-      return NextResponse.json({ error: 'Invalid request' }, { status: 400 });
+    if (!requestId || !["approve", "reject"].includes(action)) {
+      return NextResponse.json({ error: "Invalid request" }, { status: 400 });
     }
 
-    if (action === 'approve') {
-      if (!secretCode || String(secretCode).length < 4) {
-        return NextResponse.json({ error: 'Secret code must be at least 4 characters' }, { status: 400 });
+    const supabase = createAdminClient();
+
+    if (action === "approve") {
+      if (!secretCode || String(secretCode).length < 8) {
+        return NextResponse.json({ error: "Secret code must be at least 8 characters" }, { status: 400 });
       }
 
-      // Get the firebase_uid from the request
       const { data: requestData, error: fetchError } = await supabase
-        .from('admin_requests')
-        .select('firebase_uid')
-        .eq('id', requestId)
-        .eq('status', 'pending')
+        .from("admin_requests")
+        .select("firebase_uid")
+        .eq("id", requestId)
+        .eq("status", "pending")
         .single();
 
       if (fetchError) throw fetchError;
 
-      const hashedSecretCode = await bcrypt.hash(String(secretCode), 10);
+      const hashedSecretCode = await bcrypt.hash(String(secretCode), 12);
 
-      // Insert into admins table with secret code
       const { error: insertError } = await supabase
-        .from('admins')
+        .from("admins")
         .insert([
           {
             firebase_uid: requestData.firebase_uid,
@@ -70,34 +62,48 @@ export async function POST(request: Request) {
 
       if (insertError) throw insertError;
 
-      // Update user role to admin
       const { error: userUpdateError } = await supabase
-        .from('users')
-        .update({ role: 'admin' })
-        .eq('firebase_uid', requestData.firebase_uid);
+        .from("users")
+        .update({ role: "admin" })
+        .eq("firebase_uid", requestData.firebase_uid);
 
       if (userUpdateError) throw userUpdateError;
 
-      // Update the request status to approved after all promotion steps succeed
       const { error: updateError } = await supabase
-        .from('admin_requests')
-        .update({ status: 'approved' })
-        .eq('id', requestId);
+        .from("admin_requests")
+        .update({ status: "approved", reviewed_by: admin.uid, reviewed_at: new Date().toISOString() })
+        .eq("id", requestId);
 
       if (updateError) throw updateError;
 
-    } else if (action === 'reject') {
-      // Update the request status to rejected
+      await logAuditEvent({
+        actorUid: admin.uid,
+        action: "admin_request.approve",
+        resourceType: "admin_request",
+        resourceId: requestId,
+        metadata: { promotedUid: requestData.firebase_uid },
+        request,
+      });
+    } else {
       const { error } = await supabase
-        .from('admin_requests')
-        .update({ status: 'rejected' })
-        .eq('id', requestId);
+        .from("admin_requests")
+        .update({ status: "rejected", reviewed_by: admin.uid, reviewed_at: new Date().toISOString() })
+        .eq("id", requestId)
+        .eq("status", "pending");
 
       if (error) throw error;
+
+      await logAuditEvent({
+        actorUid: admin.uid,
+        action: "admin_request.reject",
+        resourceType: "admin_request",
+        resourceId: requestId,
+        request,
+      });
     }
 
     return NextResponse.json({ success: true }, { status: 200 });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    return jsonError(error, "Admin request approval failed");
   }
 }

@@ -148,7 +148,14 @@ function ConnectionDiagnostics() {
 
 export default function DiagnosticsPage() {
     if (process.env.NODE_ENV !== "development") {
-        return null;
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-slate-50">
+                <div className="text-center">
+                    <h1 className="text-2xl font-bold text-slate-800 mb-2">Page Not Found</h1>
+                    <p className="text-slate-500">This page is only available in development mode.</p>
+                </div>
+            </div>
+        );
     }
     return (
         <AdminRoute>

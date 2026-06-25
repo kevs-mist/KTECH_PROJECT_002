@@ -4,14 +4,17 @@ import { Ticket } from "../services/ticketService";
 import { z } from "zod";
 import { sanitizeText } from "../security/sanitizer";
 import { revalidatePath } from "next/cache";
+import { sendNotification } from "../../../../utils/email";
+import { logAuditEvent } from "../server/apiSecurity";
 
 // Whitelist and Validation Schemas
 const ticketCreateSchema = z.object({
     title: z.string().trim().min(5, "Title too short").max(200),
-    description: z.string().trim().min(10, "Description too short").max(2000),
-    issue_type: z.string().trim().min(2),
-    atm_id: z.string().trim().min(2),
-    bank_id: z.string().trim().min(2),
+    description: z.string().min(10, "Description must be at least 10 characters"),
+    issue_type: z.string().min(2, "Issue type is required"),
+    atm_id: z.string().min(3, "ATM ID is required"),
+    atm_location_id: z.string().uuid().optional(),
+    bank_id: z.string().min(2, "Bank ID is required"),
     atm_location: z.string().trim().min(5),
     bank_location: z.string().trim().optional(),
     // Optional pre-assignment when admin creates ticket
@@ -28,21 +31,56 @@ export async function getTicketsAction(idToken: string) {
     const { role, uid } = await verifyUserRoleAction(idToken);
     const supabase = createAdminClient();
 
-    let query = supabase.from("tickets").select("*");
-
     if (role === "admin") {
-        query = query.order("created_at", { ascending: false });
+        const { data, error } = await supabase
+            .from("tickets")
+            .select("*, check_ins(*)")
+            .order("created_at", { ascending: false });
+        if (error) throw error;
+        return data;
     } else if (role === "employee") {
         // Fetch tickets assigned to this employee OR open/unassigned tickets
-        query = query.or(`assigned_to.eq.${uid},and(status.eq.open,assigned_to.is.null)`);
-        query = query.order("created_at", { ascending: false });
-    } else {
-        query = query.eq("created_by", uid).order("created_at", { ascending: false });
-    }
+        // We need to do two separate queries and merge because Supabase .or() 
+        // doesn't support complex filters with and() properly
+        const [assignedResult, unassignedResult] = await Promise.all([
+            // Tickets assigned to this employee
+            supabase
+                .from("tickets")
+                .select("*, check_ins(*)")
+                .eq("assigned_to", uid)
+                .order("created_at", { ascending: false }),
+            // Open unassigned tickets available for this employee
+            supabase
+                .from("tickets")
+                .select("*, check_ins(*)")
+                .eq("status", "open")
+                .is("assigned_to", null)
+                .order("created_at", { ascending: false })
+        ]);
 
-    const { data, error } = await query;
-    if (error) throw error;
-    return data;
+        if (assignedResult.error) throw assignedResult.error;
+        if (unassignedResult.error) throw unassignedResult.error;
+
+        // Merge results and remove duplicates
+        const ticketMap = new Map();
+        [...(assignedResult.data || []), ...(unassignedResult.data || [])].forEach(ticket => {
+            if (ticket.id && !ticketMap.has(ticket.id)) {
+                ticketMap.set(ticket.id, ticket);
+            }
+        });
+
+        return Array.from(ticketMap.values()).sort((a, b) => 
+            new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()
+        );
+    } else {
+        const { data, error } = await supabase
+            .from("tickets")
+            .select("*, check_ins(*)")
+            .eq("created_by", uid)
+            .order("created_at", { ascending: false });
+        if (error) throw error;
+        return data;
+    }
 }
 
 /**
@@ -79,6 +117,9 @@ export async function createTicketAction(idToken: string, ticket: Ticket) {
     // Sanitize user inputs to prevent XSS
     const sanitizedData = {
         ...validatedData,
+        atm_id: sanitizeText(ticket.atm_id),
+        atm_location_id: ticket.atm_location_id,
+        bank_id: sanitizeText(ticket.bank_id),
         title: sanitizeText(validatedData.title),
         description: sanitizeText(validatedData.description),
         atm_location: sanitizeText(validatedData.atm_location),
@@ -98,6 +139,23 @@ export async function createTicketAction(idToken: string, ticket: Ticket) {
         .single();
 
     if (error) throw error;
+
+    await logAuditEvent({
+        actorUid: uid,
+        action: "ticket.create",
+        resourceType: "ticket",
+        resourceId: data.id,
+        metadata: { status: initialStatus, assignedTo: sanitizedData.assigned_to ?? null },
+    });
+
+    // Trigger notification
+    if (initialStatus === "assigned") {
+        await sendNotification('ticket_assigned', data.id, 'employee');
+        await sendNotification('ticket_assigned', data.id, 'admin');
+    } else {
+        await sendNotification('ticket_created', data.id, 'open_pool');
+    }
+
     return data;
 }
 
@@ -128,6 +186,12 @@ export async function acceptTicketAction(idToken: string, ticketId: string, curr
         }
         throw error;
     }
+    await logAuditEvent({
+        actorUid: uid,
+        action: "ticket.accept",
+        resourceType: "ticket",
+        resourceId: ticketId,
+    });
     revalidatePath("/", "layout");
     return data;
 }
@@ -183,6 +247,12 @@ export async function resolveTicketAction(idToken: string, ticketId: string, cur
     if (error || !data) {
         throw new Error("Failed to resolve. The ticket must be 'In Progress' first, or it has been updated elsewhere.");
     }
+    await logAuditEvent({
+        actorUid: uid,
+        action: "ticket.resolve",
+        resourceType: "ticket",
+        resourceId: ticketId,
+    });
     revalidatePath("/", "layout");
     return data;
 }
@@ -217,6 +287,12 @@ export async function escalateTicketAction(idToken: string, ticketId: string, cu
     if (error || !data) {
         throw new Error("Failed to escalate. The ticket must be 'In Progress' first, or it has been updated elsewhere.");
     }
+    await logAuditEvent({
+        actorUid: uid,
+        action: "ticket.escalate",
+        resourceType: "ticket",
+        resourceId: ticketId,
+    });
     revalidatePath("/", "layout");
     return data;
 }
@@ -255,7 +331,7 @@ export async function markInProgressAction(idToken: string, ticketId: string, cu
  * Admin manually closes any ticket regardless of current status.
  */
 export async function adminCloseTicketAction(idToken: string, ticketId: string, currentVersion: number, adminNotes?: string) {
-    const { role } = await verifyUserRoleAction(idToken);
+    const { role, uid } = await verifyUserRoleAction(idToken);
     if (role !== "admin") throw new Error("Unauthorized: Admin access required.");
 
     const sanitizedNotes = sanitizeText(adminNotes || "").slice(0, 2000);
@@ -276,6 +352,12 @@ export async function adminCloseTicketAction(idToken: string, ticketId: string, 
     if (error || !data) {
         throw new Error("Failed to close. The ticket may have been updated elsewhere.");
     }
+    await logAuditEvent({
+        actorUid: uid,
+        action: "ticket.admin_close",
+        resourceType: "ticket",
+        resourceId: ticketId,
+    });
     revalidatePath("/", "layout");
     return data;
 }
@@ -284,7 +366,7 @@ export async function adminCloseTicketAction(idToken: string, ticketId: string, 
  * Admin assigns an existing open ticket to a specific engineer.
  */
 export async function assignTicketToEmployeeAction(idToken: string, ticketId: string, employeeUid: string, currentVersion: number) {
-    const { role } = await verifyUserRoleAction(idToken);
+    const { role, uid } = await verifyUserRoleAction(idToken);
     if (role !== "admin") throw new Error("Unauthorized: Admin access required.");
 
     if (!employeeUid?.trim()) throw new Error("Employee UID is required.");
@@ -317,7 +399,19 @@ export async function assignTicketToEmployeeAction(idToken: string, ticketId: st
     if (error || !data) {
         throw new Error("Failed to assign. The ticket may have been updated elsewhere.");
     }
+    await logAuditEvent({
+        actorUid: uid,
+        action: "ticket.assign",
+        resourceType: "ticket",
+        resourceId: ticketId,
+        metadata: { employeeUid },
+    });
     revalidatePath("/", "layout");
+
+    // Trigger notification
+    await sendNotification('ticket_assigned', ticketId, 'employee');
+    await sendNotification('ticket_assigned', ticketId, 'admin');
+
     return data;
 }
 
@@ -325,7 +419,7 @@ export async function assignTicketToEmployeeAction(idToken: string, ticketId: st
  * Admin releases a ticket back to the open pool (unassigns it, resets media and notes).
  */
 export async function adminReleaseTicketAction(idToken: string, ticketId: string, currentVersion: number) {
-    const { role } = await verifyUserRoleAction(idToken);
+    const { role, uid } = await verifyUserRoleAction(idToken);
     if (role !== "admin") throw new Error("Unauthorized: Admin access required.");
 
     const supabase = createAdminClient();
@@ -346,6 +440,66 @@ export async function adminReleaseTicketAction(idToken: string, ticketId: string
     if (error || !data) {
         throw new Error("Failed to release ticket. It may have been updated elsewhere.");
     }
+    await logAuditEvent({
+        actorUid: uid,
+        action: "ticket.admin_release",
+        resourceType: "ticket",
+        resourceId: ticketId,
+    });
     revalidatePath("/", "layout");
     return data;
+}
+
+/**
+ * Employee checks in at the ATM location
+ */
+export async function checkInAction(idToken: string, ticketId: string, currentVersion: number, latitude: number, longitude: number) {
+    const { role, uid } = await verifyUserRoleAction(idToken);
+    if (role !== "employee") throw new Error("Unauthorized: Employee access required.");
+
+    if (typeof latitude !== 'number' || typeof longitude !== 'number') {
+        throw new Error("Valid coordinates are required.");
+    }
+
+    const supabase = createAdminClient();
+
+    // 1. Insert check-in record
+    const { data: checkIn, error: checkInError } = await supabase
+        .from("check_ins")
+        .insert([{
+            ticket_id: ticketId,
+            employee_id: uid,
+            latitude,
+            longitude,
+            checked_in_at: new Date().toISOString()
+        }])
+        .select()
+        .single();
+
+    if (checkInError) throw checkInError;
+
+    // 2. Attempt to update ticket status to in_progress if it's currently assigned
+    const { data: ticket } = await supabase
+        .from("tickets")
+        .update({
+            status: "in_progress",
+            updated_at: new Date().toISOString()
+        })
+        .eq("id", ticketId)
+        .eq("assigned_to", uid)
+        .eq("status", "assigned")
+        .eq("version", currentVersion)
+        .select()
+        .maybeSingle();
+
+    await logAuditEvent({
+        actorUid: uid,
+        action: "ticket.check_in",
+        resourceType: "ticket",
+        resourceId: ticketId,
+        metadata: { latitude, longitude },
+    });
+    revalidatePath("/", "layout");
+    
+    return { success: true, checkIn, ticket: ticket || null };
 }

@@ -14,16 +14,17 @@ import { useAuth } from "../../lib/AuthContext";
 export default function AdminRoute({ children }: { children: React.ReactNode }) {
     const { user, role, loading: authLoading } = useAuth();
     const router = useRouter();
+    const roleLoading = authLoading || (user !== null && role === null);
 
     useEffect(() => {
-        if (!authLoading) {
-            if (!user || role !== "admin") {
-                router.push("/login");
-            }
-        }
-    }, [user, role, authLoading, router]);
+        if (roleLoading) return;
 
-    if (authLoading) {
+        if (!user || role !== "admin") {
+            router.replace("/login");
+        }
+    }, [user, role, roleLoading, router]);
+
+    if (roleLoading) {
         return (
             <div 
                 role="status"
@@ -44,5 +45,5 @@ export default function AdminRoute({ children }: { children: React.ReactNode }) 
         return <>{children}</>;
     }
 
-    return null; // Will immediately redirect via useEffect
+    return null;
 }

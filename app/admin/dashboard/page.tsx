@@ -5,6 +5,7 @@ import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "../../src/lib/AuthContext";
 import CreateTicketModal from "../../src/components/Admin/CreateTicketModal";
+import DataImportModal from "../../src/components/Admin/DataImportModal";
 import { ticketService, Ticket } from "../../src/lib/services/ticketService";
 import { employeeService, EmployeeProfile } from "../../src/lib/services/employeeService";
 import { supabase } from "../../src/lib/supabase";
@@ -31,6 +32,7 @@ export default function AdminDashboard() {
     const { user, loading: authLoading, logout } = useAuth();
     const router = useRouter();
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isImportModalOpen, setIsImportModalOpen] = useState(false);
     const [stats, setStats] = useState({ total: 0, open: 0, closed: 0, escalated: 0 });
     const [tickets, setTickets] = useState<Ticket[]>([]);
     const [employees, setEmployees] = useState<EmployeeProfile[]>([]);
@@ -39,6 +41,7 @@ export default function AdminDashboard() {
     const [fetchError, setFetchError] = useState<string | null>(null);
     const [searchQuery, setSearchQuery] = useState("");
     const [filterStatus, setFilterStatus] = useState("all");
+    const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
     
     // Admin requests state
     const [requests, setRequests] = useState<AdminRequest[]>([]);
@@ -288,7 +291,19 @@ export default function AdminDashboard() {
                 <tr>
                     <td style="font-family: monospace; font-weight: bold; color: #4f46e5;">${ticket.ticket_no || ""}</td>
                     <td>${ticket.title || ""}</td>
-                    <td>${ticket.description || ""}</td>
+                    <td>
+                        <button 
+                        onclick={() => setSelectedTicket(ticket)}
+                        class="text-[9px] font-black uppercase tracking-widest bg-white/5 
+                        hover:bg-emerald-500 hover:text-white border border-white/10 px-3 py-1.5 
+                        rounded-lg transition-all shrink-0"
+                        title = "Click to view full description">
+            
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+    </svg>
+                                            
+                    </button>
                     <td>${ticket.issue_type || ""}</td>
                     <td>${ticket.status || ""}</td>
                     <td>${ticket.priority || ""}</td>
@@ -357,32 +372,6 @@ export default function AdminDashboard() {
 
     return (
         <div className="min-h-screen bg-slate-900 text-white">
-            <nav className="flex justify-between items-center px-8 py-6 border-b border-slate-800">
-                <div className="flex items-center gap-4">
-                    <img 
-                        src="/images/prime_services_logo.png?v=1" 
-                        alt="Prime Services ATM Services & Maintenance" 
-                        className="w-12 h-12 object-contain"
-                    />
-                    <div>
-                        <h1 className="text-2xl font-black uppercase tracking-tighter italic">Prime <span className="text-indigo-400">Admin Hub</span></h1>
-                        <p className="text-[10px] text-slate-500 uppercase tracking-widest font-bold">System Management Console</p>
-                    </div>
-                </div>
-                <div className="flex items-center gap-6">
-                    <div className="text-right">
-                        <p className="text-xs font-bold">{user?.email}</p>
-                        <p className="text-[10px] text-indigo-400 uppercase tracking-widest">Administrator</p>
-                    </div>
-                    <button 
-                        onClick={handleLogout}
-                        className="bg-slate-800 hover:bg-red-500/20 hover:text-red-400 border border-slate-700 px-4 py-2 rounded-lg text-xs font-bold transition-all"
-                    >
-                        Terminate Session
-                    </button>
-                </div>
-            </nav>
-
             <main className="p-8 max-w-7xl mx-auto">
                 {/* Admin Requests Section */}
                 <div className="mt-8 bg-white/[0.02] border border-white/5 rounded-[2rem] p-8">
@@ -506,6 +495,15 @@ export default function AdminDashboard() {
                     </div>
                     <div className="flex gap-4">
                         <button 
+                            onClick={() => setIsImportModalOpen(true)}
+                            className="bg-white/5 border border-white/10 hover:bg-white/10 text-white px-8 py-3.5 rounded-2xl font-black uppercase text-xs tracking-widest transition-all flex items-center gap-2"
+                        >
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m4-8l-4-4m0 0L13 8m4-4v12" />
+                            </svg>
+                            Import Data
+                        </button>
+                        <button 
                             onClick={handleExportExcel}
                             className="bg-white/5 border border-white/10 hover:bg-white/10 text-white px-8 py-3.5 rounded-2xl font-black uppercase text-xs tracking-widest transition-all flex items-center gap-2"
                         >
@@ -622,6 +620,16 @@ export default function AdminDashboard() {
                                                         Eng: {getEngineerName(ticket.assigned_to)}
                                                     </p>
                                                 )}
+                                                {ticket.check_ins && ticket.check_ins.length > 0 && (
+                                                    <div className="mt-2 space-y-1">
+                                                        <p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest">Recent Check-ins:</p>
+                                                        {ticket.check_ins.slice(0, 3).map((ci: any) => (
+                                                            <p key={ci.id} className="text-[9px] text-slate-400">
+                                                                {new Date(ci.checked_in_at).toLocaleTimeString()} @ {ci.latitude.toFixed(4)}, {ci.longitude.toFixed(4)}
+                                                            </p>
+                                                        ))}
+                                                    </div>
+                                                )}
                                             </td>
                                             <td className="px-8 py-5">
                                                 <p className="text-xs font-bold text-slate-300">{ticket.atm_id}</p>
@@ -693,6 +701,11 @@ export default function AdminDashboard() {
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
                 onSuccess={fetchStats}
+            />
+            <DataImportModal
+                isOpen={isImportModalOpen}
+                onClose={() => setIsImportModalOpen(false)}
+                onSuccess={() => {}}
             />
         </div>
     );

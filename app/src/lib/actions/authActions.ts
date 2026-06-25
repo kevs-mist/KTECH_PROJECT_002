@@ -129,7 +129,7 @@ export async function generatePasswordResetLinkAction(email: string) {
         // Omitting actionCodeSettings prevents "INTERNAL ASSERT FAILED" when localhost 
         // is not strictly whitelisted in the Firebase Auth console.
         const rawLink = await adminAuth.generatePasswordResetLink(email.trim());
-        
+
         // Extract oobCode from the Firebase generated link
         let customLink = rawLink;
         try {
@@ -141,7 +141,13 @@ export async function generatePasswordResetLinkAction(email: string) {
         } catch {
             // Ignore parse errors, fallback to raw link
         }
-        
+
+        // DEV MODE: Log the link for local testing only
+        if (process.env.NODE_ENV === 'development') {
+            console.log("\n🔑 [DEV MODE] GENERATED PASSWORD RESET LINK:");
+            console.log(customLink);
+        }
+
         return { success: true, link: customLink };
     } catch (error: unknown) {
         console.error("Failed to generate password reset link on server:", getErrorMessage(error));

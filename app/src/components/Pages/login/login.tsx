@@ -163,8 +163,8 @@ export default function Login() {
                             <a href="/reset-password" className="text-[10px] text-slate-400 font-bold uppercase tracking-wider hover:text-slate-600 transition-colors">Forgot Password?</a>
                         </div>
                     </div>
-                </div> {/* End login-body */}
-            </div> {/* End login-box */}
-        </div> /* End login-container */
+                </div>
+            </div>
+        </div>
     );
 }

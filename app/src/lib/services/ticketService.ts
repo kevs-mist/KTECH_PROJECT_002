@@ -9,6 +9,7 @@ export interface Ticket {
     issue_type: string;
     status?: string;
     atm_id: string;
+    atm_location_id?: string;
     bank_id: string;
     atm_location: string;
     bank_location?: string;
@@ -20,6 +21,7 @@ export interface Ticket {
     resolution_notes?: string;
     priority?: string;
     version?: number; // For optimistic locking
+    check_ins?: any[]; // Check-ins array from DB
 }
 
 interface AdminStats {
@@ -98,5 +100,9 @@ export const ticketService = {
 
     async adminReleaseTicket(ticketId: string, currentVersion: number): Promise<Ticket> {
         return this.post<Ticket>("admin-release", { ticketId, currentVersion });
+    },
+
+    async checkIn(ticketId: string, currentVersion: number, latitude: number, longitude: number): Promise<{ success: boolean, checkIn: any, ticket: Ticket | null }> {
+        return this.post<{ success: boolean, checkIn: any, ticket: Ticket | null }>("check-in", { ticketId, currentVersion, latitude, longitude });
     }
 };

@@ -1,35 +1,18 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "../../../utils/supabase/admin";
+import {
+    getBearerToken,
+    jsonError,
+    requireAdmin,
+} from "../../src/lib/server/apiSecurity";
 import { adminAuth } from "../../../utils/firebase/admin";
 
-function getBearerToken(request: Request) {
-    const authHeader = request.headers.get("authorization");
-    return authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
-}
-
-function getEnvStatus() {
-    const privateKey = process.env.FIREBASE_PRIVATE_KEY;
-
-    return {
-        hasSupabaseUrl: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
-        hasSupabaseServiceRole: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
-        hasFirebaseProjectId: !!process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-        hasFirebaseClientEmail: !!process.env.FIREBASE_CLIENT_EMAIL,
-        hasFirebasePrivateKey: !!privateKey,
-        firebasePrivateKeyLooksValid:
-            !!privateKey &&
-            privateKey.includes("BEGIN PRIVATE KEY") &&
-            privateKey.includes("END PRIVATE KEY"),
-        firebaseProjectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID ?? null,
-    };
-}
-
-function getErrorMessage(error: unknown) {
-    return error instanceof Error ? error.message : "Auth diagnostics failed";
+function diagnosticsAllowed() {
+    return process.env.NODE_ENV === "development" && process.env.VERCEL_ENV !== "production";
 }
 
 export async function GET(request: Request) {
-    if (process.env.NODE_ENV !== "development") {
+    if (!diagnosticsAllowed()) {
         return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 
@@ -39,67 +22,48 @@ export async function GET(request: Request) {
             return NextResponse.json({ error: "Missing bearer token" }, { status: 401 });
         }
 
+        await requireAdmin(request);
         const decodedToken = await adminAuth.verifyIdToken(token);
         const supabase = createAdminClient();
 
-        const userPromise = supabase
-            .from("users")
-            .select("firebase_uid, email, role")
-            .eq("firebase_uid", decodedToken.uid)
-            .maybeSingle();
-        const adminPromise = supabase
-            .from("admins")
-            .select("firebase_uid, is_super_admin, locked_until")
-            .eq("firebase_uid", decodedToken.uid)
-            .maybeSingle();
-        const employeePromise = supabase
-            .from("employees")
-            .select("firebase_uid, status")
-            .eq("firebase_uid", decodedToken.uid)
-            .maybeSingle();
-
         const [userRes, adminRes, employeeRes] = await Promise.all([
-            userPromise,
-            adminPromise,
-            employeePromise
+            supabase
+                .from("users")
+                .select("firebase_uid, email, role")
+                .eq("firebase_uid", decodedToken.uid)
+                .maybeSingle(),
+            supabase
+                .from("admins")
+                .select("firebase_uid, is_super_admin, locked_until")
+                .eq("firebase_uid", decodedToken.uid)
+                .maybeSingle(),
+            supabase
+                .from("employees")
+                .select("firebase_uid, status")
+                .eq("firebase_uid", decodedToken.uid)
+                .maybeSingle(),
         ]);
 
-        const userData = userRes.data;
-        const userError = userRes.error;
-        const adminData = adminRes.data;
-        const adminError = adminRes.error;
-        const employeeData = employeeRes.data;
-        const employeeError = employeeRes.error;
-
-        if (userError || !userData || userData.role !== "admin") {
-            return NextResponse.json({ error: "Forbidden: Admin access required" }, { status: 403 });
-        }
-
-        const env = getEnvStatus();
-
         return NextResponse.json({
-            env,
             token: {
                 uid: decodedToken.uid,
                 email: decodedToken.email ?? null,
-                audience: decodedToken.aud,
-                issuer: decodedToken.iss,
             },
             supabase: {
-                userFound: !!userData,
-                userRole: userData?.role ?? null,
-                adminFound: !!adminData,
-                employeeFound: !!employeeData,
-                employeeStatus: employeeData?.status ?? null,
-                adminLockedUntil: adminData?.locked_until ?? null,
+                userFound: !!userRes.data,
+                userRole: userRes.data?.role ?? null,
+                adminFound: !!adminRes.data,
+                employeeFound: !!employeeRes.data,
+                employeeStatus: employeeRes.data?.status ?? null,
+                adminLockedUntil: adminRes.data?.locked_until ?? null,
                 errors: {
-                    user: (userError as any)?.message ?? null,
-                    admin: (adminError as any)?.message ?? null,
-                    employee: (employeeError as any)?.message ?? null,
+                    user: userRes.error?.message ?? null,
+                    admin: adminRes.error?.message ?? null,
+                    employee: employeeRes.error?.message ?? null,
                 },
             },
         });
     } catch (error: unknown) {
-        return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 });
+        return jsonError(error, "Auth diagnostics failed");
     }
 }

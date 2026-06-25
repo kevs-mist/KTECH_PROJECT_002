@@ -5,7 +5,7 @@ import { auth } from "../../../lib/firebase";
 
 type RegisteredRole = "admin" | "employee" | "user";
 
-export function register_service_provider() {
+export function useRegisterServiceProvider() {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 

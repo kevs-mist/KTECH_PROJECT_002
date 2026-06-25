@@ -1,15 +1,12 @@
 import { NextResponse } from "next/server";
-import { adminAuth } from "../../../utils/firebase/admin";
-import { createAdminClient } from "../../../utils/supabase/admin";
-
-function getBearerToken(request: Request) {
-    const authHeader = request.headers.get("authorization");
-    return authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
-}
-
-function getErrorMessage(error: unknown) {
-    return error instanceof Error ? error.message : "Ticket request failed";
-}
+import {
+    assertSameOrigin,
+    checkRateLimit,
+    getBearerToken,
+    getClientIp,
+    jsonError,
+    rateLimitResponse,
+} from "../../src/lib/server/apiSecurity";
 
 function requireToken(request: Request) {
     const token = getBearerToken(request);
@@ -17,58 +14,42 @@ function requireToken(request: Request) {
     return token;
 }
 
-async function getAdminStats(token: string) {
-    const decodedToken = await adminAuth.verifyIdToken(token);
-    const supabase = createAdminClient();
-
-    const { data: adminData, error: adminError } = await supabase
-        .from("admins")
-        .select("id")
-        .eq("firebase_uid", decodedToken.uid)
-        .maybeSingle();
-
-    if (adminError) throw adminError;
-    if (!adminData) throw new Error("Unauthorized: Admin access required.");
-
-    const [totalResult, openResult, closedResult, escalatedResult] = await Promise.all([
-        supabase.from("tickets").select("*", { count: "exact", head: true }),
-        supabase.from("tickets").select("*", { count: "exact", head: true }).eq("status", "open"),
-        supabase.from("tickets").select("*", { count: "exact", head: true }).eq("status", "closed"),
-        supabase.from("tickets").select("*", { count: "exact", head: true }).eq("status", "re_raised"),
-    ]);
-
-    const firstError = totalResult.error || openResult.error || closedResult.error || escalatedResult.error;
-    if (firstError) throw firstError;
-
-    return {
-        total: totalResult.count || 0,
-        open: openResult.count || 0,
-        closed: closedResult.count || 0,
-        escalated: escalatedResult.count || 0,
-    };
-}
-
 export async function GET(request: Request) {
     try {
+        const limit = checkRateLimit({
+            key: `tickets:get:${getClientIp(request)}`,
+            limit: 180,
+            windowMs: 60 * 1000,
+        });
+        if (!limit.success) return rateLimitResponse(limit.resetAt);
+
         const token = requireToken(request);
         const url = new URL(request.url);
         const resource = url.searchParams.get("resource");
 
         if (resource === "admin-stats") {
-            return NextResponse.json(await getAdminStats(token));
+            const { getAdminStatsAction } = await import("../../src/lib/actions/ticketActions");
+            return NextResponse.json(await getAdminStatsAction(token));
         }
 
         const { getTicketsAction } = await import("../../src/lib/actions/ticketActions");
         return NextResponse.json(await getTicketsAction(token));
     } catch (error: unknown) {
-        const message = getErrorMessage(error);
-        const status = message.toLowerCase().includes("unauthorized") ? 401 : 500;
-        return NextResponse.json({ error: message }, { status });
+        return jsonError(error, "Ticket request failed");
     }
 }
 
 export async function POST(request: Request) {
     try {
+        assertSameOrigin(request);
+
+        const limit = checkRateLimit({
+            key: `tickets:post:${getClientIp(request)}`,
+            limit: 90,
+            windowMs: 60 * 1000,
+        });
+        if (!limit.success) return rateLimitResponse(limit.resetAt);
+
         const token = requireToken(request);
         const body = await request.json();
         const {
@@ -80,6 +61,7 @@ export async function POST(request: Request) {
             escalateTicketAction,
             markInProgressAction,
             resolveTicketAction,
+            checkInAction,
         } = await import("../../src/lib/actions/ticketActions");
 
         switch (body.operation) {
@@ -93,6 +75,8 @@ export async function POST(request: Request) {
                 return NextResponse.json(await escalateTicketAction(token, body.ticketId, body.currentVersion, body.proofMediaUrl, body.escalationNotes));
             case "mark-in-progress":
                 return NextResponse.json(await markInProgressAction(token, body.ticketId, body.currentVersion));
+            case "check-in":
+                return NextResponse.json(await checkInAction(token, body.ticketId, body.currentVersion, body.latitude, body.longitude));
             case "admin-close":
                 return NextResponse.json(await adminCloseTicketAction(token, body.ticketId, body.currentVersion, body.adminNotes));
             case "assign":
@@ -103,8 +87,6 @@ export async function POST(request: Request) {
                 return NextResponse.json({ error: "Unknown ticket operation" }, { status: 400 });
         }
     } catch (error: unknown) {
-        const message = getErrorMessage(error);
-        const status = message.toLowerCase().includes("unauthorized") ? 401 : 500;
-        return NextResponse.json({ error: message }, { status });
+        return jsonError(error, "Ticket request failed");
     }
 }

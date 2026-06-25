@@ -1,4 +1,4 @@
-const fs = require('fs');
+import fs from 'fs';
 const env = fs.readFileSync('.env.local', 'utf8');
 const match = env.match(/FIREBASE_PRIVATE_KEY="(.*?)"/s);
 if (match) {

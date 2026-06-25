@@ -30,6 +30,7 @@ ALTER TABLE public.tickets ENABLE ROW LEVEL SECURITY;
 -- 4. RLS Policies
 
 -- Admins can do everything
+DROP POLICY IF EXISTS "Admins have full access to tickets" ON public.tickets;
 CREATE POLICY "Admins have full access to tickets" ON public.tickets
     FOR ALL 
     USING (
@@ -40,11 +41,13 @@ CREATE POLICY "Admins have full access to tickets" ON public.tickets
     );
 
 -- TEMPORARY: Allow all users to create tickets during development
+DROP POLICY IF EXISTS "Anyone can create tickets" ON public.tickets;
 CREATE POLICY "Anyone can create tickets" ON public.tickets
     FOR INSERT 
     WITH CHECK (true);
 
 -- Employees can see unassigned open tickets OR tickets assigned to them
+DROP POLICY IF EXISTS "Employees can view relevant tickets" ON public.tickets;
 CREATE POLICY "Employees can view relevant tickets" ON public.tickets
     FOR SELECT 
     USING (
@@ -57,6 +60,7 @@ CREATE POLICY "Employees can view relevant tickets" ON public.tickets
     );
 
 -- Employees can update tickets assigned to them (to change status or add proof)
+DROP POLICY IF EXISTS "Employees can update assigned tickets" ON public.tickets;
 CREATE POLICY "Employees can update assigned tickets" ON public.tickets
     FOR UPDATE
     USING (
@@ -77,7 +81,9 @@ BEGIN
 END;
 $$ language 'plpgsql';
 
+DROP TRIGGER IF EXISTS update_tickets_updated_at ON public.tickets;
 CREATE TRIGGER update_tickets_updated_at
     BEFORE UPDATE ON public.tickets
     FOR EACH ROW
     EXECUTE PROCEDURE update_updated_at_column();
+

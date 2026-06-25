@@ -1,67 +1,29 @@
 import { NextResponse } from "next/server";
-import { adminAuth } from "../../../../utils/firebase/admin";
-import { createAdminClient } from "../../../../utils/supabase/admin";
-
-function getBearerToken(request: Request) {
-    const authHeader = request.headers.get("authorization");
-    return authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
-}
-
-function getErrorMessage(error: unknown) {
-    return error instanceof Error ? error.message : "Unable to verify user role";
-}
+import {
+    checkRateLimit,
+    getClientIp,
+    jsonError,
+    rateLimitResponse,
+    requireVerifiedUser,
+} from "../../../src/lib/server/apiSecurity";
 
 export async function GET(request: Request) {
     try {
-        const token = getBearerToken(request);
-        if (!token) {
-            return NextResponse.json({ error: "Missing authentication token" }, { status: 401 });
-        }
+        const limit = checkRateLimit({
+            key: `auth:role:${getClientIp(request)}`,
+            limit: 120,
+            windowMs: 60 * 1000,
+        });
+        if (!limit.success) return rateLimitResponse(limit.resetAt);
 
-        const decodedToken = await adminAuth.verifyIdToken(token);
-        const uid = decodedToken.uid;
-        const supabase = createAdminClient();
-
-        const { data: adminData, error: adminError } = await supabase
-            .from("admins")
-            .select("id")
-            .eq("firebase_uid", uid)
-            .maybeSingle();
-
-        if (adminError) throw adminError;
-
-        if (adminData) {
-            return NextResponse.json({ role: "admin", uid, adminId: adminData.id });
-        }
-
-        const { data: employeeData, error: employeeError } = await supabase
-            .from("employees")
-            .select("id")
-            .eq("firebase_uid", uid)
-            .maybeSingle();
-
-        if (employeeError) throw employeeError;
-
-        if (employeeData) {
-            return NextResponse.json({ role: "employee", uid, employeeId: employeeData.id });
-        }
-
-        // Fallback: Check users table role field for employees who may not be in employees table
-        const { data: userData, error: userError } = await supabase
-            .from("users")
-            .select("role")
-            .eq("firebase_uid", uid)
-            .maybeSingle();
-
-        if (userError) throw userError;
-
-        if (userData && userData.role === "employee") {
-            return NextResponse.json({ role: "employee", uid });
-        }
-
-        return NextResponse.json({ role: "user", uid });
+        const user = await requireVerifiedUser(request);
+        return NextResponse.json({
+            role: user.role,
+            uid: user.uid,
+            adminId: user.adminId,
+            employeeId: user.employeeId,
+        });
     } catch (error: unknown) {
-        console.error("Role API verification error:", getErrorMessage(error));
-        return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 });
+        return jsonError(error, "Unable to verify user role");
     }
 }

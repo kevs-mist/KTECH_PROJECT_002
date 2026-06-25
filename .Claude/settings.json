@@ -1,7 +1,20 @@
 {
-    "env": {
-        "ANTHROPIC_BASE_URL": "http://127.0.0.1:1234"
-
-    }, 
-    "model": "google/gemma-4-e2b"
+  "models": {
+    "default": "google/gemma-4-e2b"
+  },
+  "claudeCode.environmentVariables": [
+    {
+      "name": "ANTHROPIC_BASE_URL",
+      "value": "http://localhost:1234"
+    },
+    {
+      "name": "ANTHROPIC_AUTH_TOKEN", 
+      "value": "lmstudio"
+    },
+    {
+      "name": "CLAUDE_CODE_ATTRIBUTION_HEADER",
+      "value": "0"
+    }
+  ],
+  "claudeCode.debug": true
 }

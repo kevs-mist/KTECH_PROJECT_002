@@ -72,8 +72,11 @@ export function useLoginServiceProvider() {
             router.push("/dashboard"); 
             return { success: true, user: firebaseUser };
         } catch (err: unknown) {
-            console.warn("Login Error:", getErrorMessage(err));
-            await signOut(auth);
+            try {
+                await signOut(auth);
+            } catch {
+                // Ignore sign-out failures when auth is unavailable.
+            }
             const friendlyMessage = ErrorHandler.format(err, "Invalid credentials.");
             setError(friendlyMessage);
             return { success: false, error: friendlyMessage };

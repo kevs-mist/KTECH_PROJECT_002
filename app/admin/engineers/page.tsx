@@ -8,6 +8,10 @@ import { employeeService, EmployeeProfile } from "../../src/lib/services/employe
 import { supabase } from "../../src/lib/supabase";
 import { debounce } from "../../src/lib/utils/debounce";
 
+function getErrorMessage(error: unknown) {
+    return error instanceof Error ? error.message : "Failed to load engineers.";
+}
+
 export default function EngineersPage() {
     const { user, loading: authLoading, logout } = useAuth();
     const router = useRouter();
@@ -21,9 +25,9 @@ export default function EngineersPage() {
             setFetchError(null);
             const data = await employeeService.getEmployees();
             setEmployees(data);
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error("Failed to fetch employees", err);
-            setFetchError(err.message || "Failed to load engineers.");
+            setFetchError(getErrorMessage(err));
         } finally {
             setIsLoading(false);
         }
@@ -35,7 +39,7 @@ export default function EngineersPage() {
             try {
                 const data = await employeeService.getEmployees();
                 setEmployees(data);
-            } catch (err: any) {
+            } catch (err: unknown) {
                 console.error("Failed to fetch employees in background", err);
             }
         }, 500),

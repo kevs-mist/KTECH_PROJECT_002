@@ -1,0 +1,136 @@
+"use client";
+
+import React, { useState } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { useAuth } from "../../lib/AuthContext";
+import { useRouter } from "next/navigation";
+
+interface NavItem {
+  label: string;
+  href: string;
+  icon: React.ReactNode;
+}
+
+export default function AdminSidebar() {
+  const pathname = usePathname();
+  const { user, logout } = useAuth();
+  const router = useRouter();
+  const [isCollapsed, setIsCollapsed] = useState(false);
+
+  const handleLogout = async () => {
+    await logout();
+    router.push("/login");
+  };
+
+  const navItems: NavItem[] = [
+    {
+      label: "Dashboard",
+      href: "/admin/dashboard",
+      icon: (
+        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+        </svg>
+      ),
+    },
+    {
+      label: "Engineers",
+      href: "/admin/engineers",
+      icon: (
+        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+        </svg>
+      ),
+    },
+  ];
+
+  return (
+    <aside
+      className={`sticky top-0 h-screen bg-slate-900 border-r border-white/10 transition-all duration-300 z-50 shrink-0 relative flex flex-col ${
+        isCollapsed ? "w-20" : "w-72"
+      }`}
+    >
+      {/* Logo */}
+      <div className="h-20 flex items-center justify-center border-b border-white/10">
+        <Link href="/admin/dashboard" className="flex items-center gap-3 group">
+          <div className="w-10 h-10 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-500/20 group-hover:shadow-emerald-500/40 transition-all duration-300 group-hover:scale-105 shrink-0">
+            <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+          </div>
+          {!isCollapsed && (
+            <div className="animate-in fade-in slide-in-from-left-2 duration-300 overflow-hidden whitespace-nowrap">
+              <h1 className="text-xl font-black text-white tracking-tight italic">
+                Prime <span className="text-emerald-400">Admin</span>
+              </h1>
+            </div>
+          )}
+        </Link>
+      </div>
+
+      {/* Navigation */}
+      <nav className="p-4 space-y-2">
+        {navItems.map((item) => {
+          const isActive = pathname === item.href;
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group ${
+                isActive
+                  ? "bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-lg shadow-emerald-500/20"
+                  : "text-slate-400 hover:text-white hover:bg-white/5"
+              }`}
+            >
+              <div className="shrink-0">{item.icon}</div>
+              {!isCollapsed && (
+                <span className="font-bold text-sm uppercase tracking-wider whitespace-nowrap overflow-hidden animate-in fade-in slide-in-from-left-2 duration-300">
+                  {item.label}
+                </span>
+              )}
+            </Link>
+          );
+        })}
+      </nav>
+
+      {/* User Section */}
+      <div className="mt-auto p-4 border-t border-white/10 bg-slate-900 w-full">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center text-white text-lg font-black shrink-0">
+            {user?.email?.charAt(0).toUpperCase()}
+          </div>
+          {!isCollapsed && (
+            <div className="flex-1 min-w-0 animate-in fade-in slide-in-from-left-2 duration-300 overflow-hidden whitespace-nowrap">
+              <p className="text-sm font-bold text-white truncate">{user?.email}</p>
+              <p className="text-[10px] text-emerald-400 uppercase tracking-widest font-bold">Administrator</p>
+            </div>
+          )}
+        </div>
+        <button
+          onClick={handleLogout}
+          className="mt-4 w-full flex items-center justify-center gap-2 bg-white/10 hover:bg-red-500/20 hover:text-red-400 text-white px-4 py-3 rounded-xl text-xs font-bold transition-all duration-200 border border-white/10"
+        >
+          <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+          </svg>
+          {!isCollapsed && <span className="whitespace-nowrap">Sign Out</span>}
+        </button>
+      </div>
+
+      {/* Collapse Toggle */}
+      <button
+        onClick={() => setIsCollapsed(!isCollapsed)}
+        className="absolute -right-3 top-1/2 -translate-y-1/2 w-6 h-6 bg-slate-800 border border-white/10 rounded-full flex items-center justify-center text-white shadow-lg hover:bg-slate-700 transition-colors"
+      >
+        <svg
+          className={`w-4 h-4 transition-transform duration-300 ${isCollapsed ? "rotate-180" : ""}`}
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+        </svg>
+      </button>
+    </aside>
+  );
+}

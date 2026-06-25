@@ -1,17 +1,17 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useAuth } from "../../src/lib/AuthContext";
 import { ticketService, Ticket } from "../../src/lib/services/ticketService";
 import { uploadMediaToStorage } from "../../src/lib/storageService";
 import { supabase } from "../../src/lib/supabase";
 import { debounce } from "../../src/lib/utils/debounce";
 import { ErrorHandler } from "../../src/lib/utils/errorHandler";
+import TicketCheckInButton from "../components/TicketCheckInButton";
 
 export default function EmployeeDashboard() {
-    const { user, logout } = useAuth();
+    const { user, role, logout } = useAuth();
     const [tickets, setTickets] = useState<Ticket[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
 
     const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
     const [isActionPending, setIsActionPending] = useState(false);
@@ -35,15 +35,25 @@ export default function EmployeeDashboard() {
         [user]
     );
 
-    useEffect(() => {
-        if (user) {
-            fetchTickets();
+    const fetchTickets = useCallback(async () => {
+        try {
+            if (!user) return;
+            const data = await ticketService.getEmployeeTickets();
+            setTickets(data);
+        } catch (error) {
+            console.error("Failed to fetch tickets:", error);
         }
     }, [user]);
 
+    useEffect(() => {
+        if (user && role === "employee") {
+            fetchTickets();
+        }
+    }, [user, role, fetchTickets]);
+
     // Supabase Realtime Listener
     useEffect(() => {
-        if (!user) return;
+        if (!user || role !== "employee") return;
 
         const channel = supabase
             .channel('employee-db-changes')
@@ -54,12 +64,20 @@ export default function EmployeeDashboard() {
                     debouncedFetch();
                 }
             )
+            .on(
+                'postgres_changes',
+                { event: '*', schema: 'public', table: 'employees' },
+                () => {
+                    // When employee record changes (status, online status, etc), refresh tickets
+                    debouncedFetch();
+                }
+            )
             .subscribe();
 
         return () => {
             supabase.removeChannel(channel);
         };
-    }, [user, debouncedFetch]);
+    }, [user, role, debouncedFetch]);
 
     // Network Reconnect Recovery
     useEffect(() => {
@@ -70,27 +88,21 @@ export default function EmployeeDashboard() {
         return () => window.removeEventListener('online', handleOnline);
     }, [debouncedFetch]);
 
+    // Immediately fetch tickets when role becomes 'employee'
+    useEffect(() => {
+        if (user && role === "employee") {
+            fetchTickets();
+        }
+    }, [role, fetchTickets, user]);
+
     // 5-Second Auto-Refresh Polling Fallback
     useEffect(() => {
-        if (!user) return;
+        if (!user || role !== "employee") return;
         const interval = setInterval(() => {
             debouncedFetch();
         }, 5000);
         return () => clearInterval(interval);
-    }, [user, debouncedFetch]);
-
-    const fetchTickets = async () => {
-        setIsLoading(true);
-        try {
-            if (!user) return;
-            const data = await ticketService.getEmployeeTickets();
-            setTickets(data);
-        } catch (error) {
-            console.error("Failed to fetch tickets:", error);
-        } finally {
-            setIsLoading(false);
-        }
-    };
+    }, [user, role, debouncedFetch]);
 
     const handleStartWork = async (ticket: Ticket) => {
         if (isActionPending) return;
@@ -98,7 +110,7 @@ export default function EmployeeDashboard() {
         try {
             await ticketService.markInProgress(ticket.id!, ticket.version || 1);
             await fetchTickets();
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error("Error marking in progress:", err);
             alert(ErrorHandler.format(err, "Failed to start work."));
         } finally {
@@ -112,7 +124,7 @@ export default function EmployeeDashboard() {
         try {
             await ticketService.acceptTicket(ticket.id!, user.uid, ticket.version || 1);
             await fetchTickets();
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error("Error accepting ticket:", err);
             alert(ErrorHandler.format(err, "Failed to accept ticket."));
         } finally {
@@ -145,7 +157,7 @@ export default function EmployeeDashboard() {
             await fetchTickets();
             setSelectedTicket(null);
             resetModalState();
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error("Error resolving ticket:", err);
             setActionError(ErrorHandler.format(err, "Failed to resolve ticket."));
         } finally {
@@ -179,7 +191,7 @@ export default function EmployeeDashboard() {
             await fetchTickets();
             setSelectedTicket(null);
             resetModalState();
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error("Error escalating ticket:", err);
             setActionError(ErrorHandler.format(err, "Failed to escalate ticket."));
         } finally {
@@ -329,12 +341,12 @@ export default function EmployeeDashboard() {
 
                                         <div className="flex flex-col sm:flex-row gap-3">
                                             {ticket.status === 'assigned' && (
-                                                <button
-                                                    onClick={() => handleStartWork(ticket)}
-                                                    className="flex-1 py-4 rounded-2xl text-[11px] font-black uppercase tracking-widest text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 transition-all hover:scale-[1.02] active:scale-95"
-                                                >
-                                                    ▶ Start Work
-                                                </button>
+                                                <div className="flex-1">
+                                                    <TicketCheckInButton 
+                                                        ticket={ticket} 
+                                                        onCheckInSuccess={() => fetchTickets()} 
+                                                    />
+                                                </div>
                                             )}
                                             <button
                                                 onClick={() => setSelectedTicket(ticket)}

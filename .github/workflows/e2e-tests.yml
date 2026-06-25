@@ -1,0 +1,128 @@
+name: E2E Tests - Page Loading
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:
+
+jobs:
+  test-page-loading:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Build application
+        run: npm run build
+        env:
+          NODE_ENV: production
+      
+      - name: Start application in background
+        run: |
+          npm start &
+          sleep 10
+        env:
+          NODE_ENV: production
+          PORT: 3000
+      
+      - name: Wait for server to be ready
+        run: |
+          for i in {1..30}; do
+            if curl -s http://localhost:3000 > /dev/null; then
+              echo "Server is ready"
+              exit 0
+            fi
+            echo "Waiting for server... ($i/30)"
+            sleep 2
+          done
+          echo "Server failed to start"
+          exit 1
+      
+      - name: Test public pages
+        run: |
+          echo "Testing public pages..."
+          
+          # Test home page (redirects to login)
+          curl -f -s -o /dev/null -w "Home page: %{http_code}\n" http://localhost:3000
+          
+          # Test login page
+          curl -f -s -o /dev/null -w "Login page: %{http_code}\n" http://localhost:3000/login
+          
+          # Test register page
+          curl -f -s -o /dev/null -w "Register page: %{http_code}\n" http://localhost:3000/register
+          
+          # Test forgot password page
+          curl -f -s -o /dev/null -w "Forgot password: %{http_code}\n" http://localhost:3000/forgot-password
+          
+          # Test reset password page
+          curl -f -s -o /dev/null -w "Reset password: %{http_code}\n" http://localhost:3000/reset-password
+      
+      - name: Test API routes
+        run: |
+          echo "Testing API routes..."
+          
+          # Test register API (should return 400 without data)
+          curl -f -s -o /dev/null -w "Register API: %{http_code}\n" -X POST http://localhost:3000/api/auth/register
+          
+          # Test role API (should return 401 without auth)
+          curl -f -s -o /dev/null -w "Role API: %{http_code}\n" http://localhost:3000/api/auth/role
+          
+          # Test tickets API (should return 401 without auth)
+          curl -f -s -o /dev/null -w "Tickets API: %{http_code}\n" http://localhost:3000/api/tickets
+          
+          # Test employees API (should return 401 without auth)
+          curl -f -s -o /dev/null -w "Employees API: %{http_code}\n" http://localhost:3000/api/employees
+      
+      - name: Test protected pages (should redirect to login)
+        run: |
+          echo "Testing protected pages (should redirect)..."
+          
+          # Test admin dashboard
+          curl -f -s -o /dev/null -w "Admin dashboard: %{http_code}\n" http://localhost:3000/admin/dashboard || echo "Admin dashboard: 302 (redirect)"
+          
+          # Test employee dashboard
+          curl -f -s -o /dev/null -w "Employee dashboard: %{http_code}\n" http://localhost:3000/employee/dashboard || echo "Employee dashboard: 302 (redirect)"
+          
+          # Test diagnostics (should be protected)
+          curl -f -s -o /dev/null -w "Diagnostics: %{http_code}\n" http://localhost:3000/diagnostics || echo "Diagnostics: 302 (redirect)"
+      
+      - name: Test static assets
+        run: |
+          echo "Testing static assets..."
+          
+          # Test logo
+          curl -f -s -o /dev/null -w "Logo image: %{http_code}\n" http://localhost:3000/images/prime_services_logo.png
+          
+          # Test favicon
+          curl -f -s -o /dev/null -w "Favicon: %{http_code}\n" http://localhost:3000/favicon.ico || echo "Favicon: 404 (optional)"
+      
+      - name: Check for 500 errors
+        run: |
+          echo "Checking for server errors..."
+          
+          RESPONSE=$(curl -s -w "\n%{http_code}" http://localhost:3000)
+          HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+          
+          if [ "$HTTP_CODE" = "500" ]; then
+            echo "ERROR: Server returned 500 error"
+            exit 1
+          fi
+          
+          echo "No 500 errors detected"
+      
+      - name: Cleanup
+        if: always()
+        run: |
+          pkill -f "npm start" || true

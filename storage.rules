@@ -8,7 +8,8 @@ service firebase.storage {
                    && (request.resource.contentType == 'image/jpeg'
                        || request.resource.contentType == 'image/png'
                        || request.resource.contentType == 'image/webp'
-                       || request.resource.contentType == 'video/mp4');
+                       || request.resource.contentType == 'video/mp4')
+                   && request.resource.name.matches('^[a-zA-Z0-9._-]+$');
     }
     match /{allPaths=**} {
       allow read, write: if false; // Deny everything else
