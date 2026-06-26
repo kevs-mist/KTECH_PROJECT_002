@@ -2,7 +2,7 @@ import { Resend } from 'resend';
 import { createAdminClient } from './supabase/admin';
 
 // Initialize Resend. Falls back to a mock key to avoid crashing if env is missing.
-const resend = new Resend(process.env.RESEND_API_KEY || 'mock_key');
+const resend = new Resend(process.env.RESEND_API_KEY || 'mock-api-key');
 
 export type EventType = 'ticket_assigned' | 'ticket_created' | 'ticket_closed' | 'ticket_in_progress' | 'ticket_re_raised';
 export type RecipientType = 'employee' | 'admin' | 'open_pool' | 'bank_authority';
@@ -83,7 +83,7 @@ export async function sendNotification(
         }
 
         const data = await resend.emails.send({
-          from: 'KTech CRM <notifications@ktechcrm.dev>',
+          from: 'KTech CRM <kevalmistry5927@gmail.com>',
           to: recipient.email,
           subject: subject,
           html: htmlBody,
