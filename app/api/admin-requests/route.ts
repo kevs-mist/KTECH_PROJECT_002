@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import { createAdminClient } from '../../../utils/supabase/admin';
-import { verifyUserRoleAction } from '../../src/lib/actions/authActions';
 
 function getBearerToken(request: Request) {
   const authHeader = request.headers.get('authorization');
@@ -14,6 +13,7 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const { verifyUserRoleAction } = await import('../../src/lib/actions/authActions');
     const { role } = await verifyUserRoleAction(token);
     if (role !== 'admin') {
       return NextResponse.json({ error: 'Admin access required' }, { status: 403 });

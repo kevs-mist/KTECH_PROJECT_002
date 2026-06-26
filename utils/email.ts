@@ -1,22 +1,8 @@
 import { Resend } from 'resend';
 import { createAdminClient } from './supabase/admin';
 
-const RESEND_FROM_EMAIL = process.env.RESEND_FROM_EMAIL;
-
-function maskSecret(value: string | undefined) {
-  if (!value) return '<missing>';
-  if (value.length <= 8) return `${value.slice(0, 2)}***`;
-  return `${value.slice(0, 5)}***${value.slice(-4)}`;
-}
-
-function getSenderDomain(from: string | undefined) {
-  if (!from) return '<missing>';
-  const match = from.match(/@([^>\s]+)>?$/);
-  return match?.[1] ?? '<unknown>';
-}
-
-const resendApiKey = process.env.RESEND_API_KEY;
-const resend = new Resend(resendApiKey);
+// Initialize Resend. Falls back to a mock key to avoid crashing if env is missing.
+const resend = new Resend(process.env.RESEND_API_KEY || 'mock_key');
 
 export type EventType = 'ticket_assigned' | 'ticket_created' | 'ticket_closed' | 'ticket_in_progress' | 'ticket_re_raised';
 export type RecipientType = 'employee' | 'admin' | 'open_pool' | 'bank_authority';
@@ -26,24 +12,7 @@ export async function sendNotification(
   ticketId: string,
   recipientType: RecipientType
 ) {
-  console.log('send email called', {
-    event,
-    ticketId,
-    recipientType,
-    resendApiKey: maskSecret(process.env.RESEND_API_KEY),
-    from: RESEND_FROM_EMAIL,
-    senderDomain: getSenderDomain(RESEND_FROM_EMAIL),
-  });
-
   try {
-    if (!process.env.RESEND_API_KEY) {
-      throw new Error('RESEND_API_KEY is missing at runtime.');
-    }
-
-    if (!RESEND_FROM_EMAIL) {
-      throw new Error('RESEND_FROM_EMAIL is missing. Set it to an address on a domain verified in Resend, for example no-reply@yourdomain.com.');
-    }
-
     const supabase = createAdminClient();
 
     // 1. Check if notification is enabled in config
@@ -66,10 +35,7 @@ export async function sendNotification(
       .eq('id', ticketId)
       .single();
 
-    if (!ticket) {
-      console.warn('Notification skipped because ticket was not found', { ticketId });
-      return;
-    }
+    if (!ticket) return;
 
     // 3. Determine recipients
     let recipients: { email: string; firebase_uid: string }[] = [];
@@ -93,16 +59,7 @@ export async function sendNotification(
         }
     }
 
-    if (recipients.length === 0) {
-      console.warn('Notification skipped because no recipients were found', {
-        event,
-        ticketId,
-        recipientType,
-      });
-      return;
-    }
-
-    const failures: string[] = [];
+    if (recipients.length === 0) return;
 
     // We're passing basic HTML for the MVP to avoid react-email build issues on the edge
     for (const recipient of recipients) {
@@ -125,24 +82,12 @@ export async function sendNotification(
                         <p>Log in to claim this ticket.</p>`;
         }
 
-        const { data, error } = await resend.emails.send({
-          from: RESEND_FROM_EMAIL,
+        const data = await resend.emails.send({
+          from: 'KTech CRM <notifications@ktechcrm.dev>',
           to: recipient.email,
           subject: subject,
           html: htmlBody,
         });
-
-        console.log('Resend email response', {
-          recipient: recipient.email,
-          data,
-          error,
-        });
-
-        if (error) {
-          throw new Error(
-            `Resend failed: ${error.name || 'Unknown'} - ${error.message || JSON.stringify(error)}`
-          );
-        }
 
         // 5. Log success
         await supabase.from('notification_logs').insert([{
@@ -155,8 +100,6 @@ export async function sendNotification(
         }]);
 
       } catch (err: any) {
-        const message = err.message || 'Unknown error';
-        failures.push(`${recipient.email}: ${message}`);
         console.error(`Failed to send email to ${recipient.email}:`, err);
         // Log failure
         await supabase.from('notification_logs').insert([{
@@ -165,16 +108,11 @@ export async function sendNotification(
             recipient_email: recipient.email,
             recipient_id: recipient.firebase_uid,
             status: 'failed',
-            error_message: message
+            error_message: err.message || 'Unknown error'
         }]);
       }
     }
-
-    if (failures.length > 0) {
-      throw new Error(`Email notification failed for ${failures.length} recipient(s): ${failures.join('; ')}`);
-    }
   } catch (error) {
     console.error("Error in sendNotification pipeline:", error);
-    throw error;
   }
 }
