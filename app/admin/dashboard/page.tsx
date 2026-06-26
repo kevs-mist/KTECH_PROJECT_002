@@ -5,13 +5,13 @@ import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "../../src/lib/AuthContext";
 import CreateTicketModal from "../../src/components/Admin/CreateTicketModal";
-import DataImportModal from "../../src/components/Admin/DataImportModal";
 import { ticketService, Ticket } from "../../src/lib/services/ticketService";
 import { employeeService, EmployeeProfile } from "../../src/lib/services/employeeService";
 import { supabase } from "../../src/lib/supabase";
 import { debounce } from "../../src/lib/utils/debounce";
 import { ErrorHandler } from "../../src/lib/utils/errorHandler";
 import { parseJsonResponse } from "../../src/lib/apiClient";
+import { setEmployeeOnlineStatusAction } from "@/app/src/lib/actions/employeeActions";
 
 /**
  * AdminDashboard
@@ -32,7 +32,6 @@ export default function AdminDashboard() {
     const { user, loading: authLoading, logout } = useAuth();
     const router = useRouter();
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [isImportModalOpen, setIsImportModalOpen] = useState(false);
     const [stats, setStats] = useState({ total: 0, open: 0, closed: 0, escalated: 0 });
     const [tickets, setTickets] = useState<Ticket[]>([]);
     const [employees, setEmployees] = useState<EmployeeProfile[]>([]);
@@ -42,7 +41,8 @@ export default function AdminDashboard() {
     const [searchQuery, setSearchQuery] = useState("");
     const [filterStatus, setFilterStatus] = useState("all");
     const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
-    
+    const isEngineerOnline = employees.find(emp => emp.firebase_uid === user?.uid)?.is_online === true || false;
+
     // Admin requests state
     const [requests, setRequests] = useState<AdminRequest[]>([]);
     const [requestsLoading, setRequestsLoading] = useState(true);
@@ -298,7 +298,7 @@ export default function AdminDashboard() {
                         hover:bg-emerald-500 hover:text-white border border-white/10 px-3 py-1.5 
                         rounded-lg transition-all shrink-0"
                         title = "Click to view full description">
-            
+
                     <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
     </svg>
@@ -310,11 +310,21 @@ export default function AdminDashboard() {
                     <td style="font-family: monospace;">${ticket.atm_id || ""}</td>
                     <td>${ticket.bank_id || ""}</td>
                     <td>${ticket.atm_location || ""}</td>
-                    <td>${engineerName}</td>
+                    <td>${engineerName || ""} (${isEngineerOnline ? "Online" : "Offline"})</td>
                     <td>${ticket.created_by || ""}</td>
                     <td>${ticket.created_at ? new Date(ticket.created_at).toLocaleString() : ""}</td>
                     <td>${ticket.updated_at ? new Date(ticket.updated_at).toLocaleString() : ""}</td>
-                    <td>${ticket.resolution_notes || ""}</td>
+                    <td>
+                        <button onclick={() => setSelectedTicket(ticket)}
+                        class="text-[9px] font-black uppercase tracking-widest bg-white/5
+                        hover:bg-emerald-500 hover:text-white border border-white/10 px-3 py-1.5
+                        rounded-lg transition-all shrink-0"
+                        title = "Click to view full resolution notes">
+                         <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" 
+                     viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+    </svg>
+    </button>
                     <td style="text-align: center; vertical-align: middle;">${mediaCell}</td>
                 </tr>
             `;
@@ -372,7 +382,7 @@ export default function AdminDashboard() {
 
     return (
         <div className="min-h-screen bg-slate-900 text-white">
-            <main className="p-8 max-w-7xl mx-auto">
+            <main className="p-4 md:p-8 px-4 sm:px-6 max-w-7xl mx-auto">
                 {/* Admin Requests Section */}
                 <div className="mt-8 bg-white/[0.02] border border-white/5 rounded-[2rem] p-8">
                     <div className="flex items-center justify-between mb-6">
@@ -488,21 +498,12 @@ export default function AdminDashboard() {
                 )}
 
                 {/* Operations Header */}
-                <div className="mt-12 flex items-end justify-between">
+                <div className="mt-12 flex flex-col gap-4 md:flex-row md:items-end justify-between">
                     <div>
                         <h3 className="text-2xl font-black italic uppercase tracking-tighter">Operational Controls</h3>
                         <p className="text-slate-500 text-[10px] font-black uppercase tracking-[0.2em] mt-1">Live Ticket Management & Deployment</p>
                     </div>
-                    <div className="flex gap-4">
-                        <button 
-                            onClick={() => setIsImportModalOpen(true)}
-                            className="bg-white/5 border border-white/10 hover:bg-white/10 text-white px-8 py-3.5 rounded-2xl font-black uppercase text-xs tracking-widest transition-all flex items-center gap-2"
-                        >
-                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m4-8l-4-4m0 0L13 8m4-4v12" />
-                            </svg>
-                            Import Data
-                        </button>
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
                         <button 
                             onClick={handleExportExcel}
                             className="bg-white/5 border border-white/10 hover:bg-white/10 text-white px-8 py-3.5 rounded-2xl font-black uppercase text-xs tracking-widest transition-all flex items-center gap-2"
@@ -562,15 +563,15 @@ export default function AdminDashboard() {
                         <div className="h-px flex-1 bg-white/5 mx-8"></div>
                     </div>
 
-                    <div className="bg-white/[0.02] border border-white/5 rounded-[2.5rem] overflow-hidden">
-                        <table className="w-full text-left border-collapse">
+                    <div className="bg-white/[0.02] border border-white/5 rounded-[2.5rem] overflow-x-auto pb-2">
+                        <table className="w-full min-w-[720px] text-left border-collapse">
                             <thead>
                                 <tr className="border-b border-white/5">
-                                    <th className="px-8 py-5 text-[10px] font-bold text-slate-500 uppercase tracking-widest">ID</th>
-                                    <th className="px-8 py-5 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Description</th>
-                                    <th className="px-8 py-5 text-[10px] font-bold text-slate-500 uppercase tracking-widest">ATM / Bank</th>
-                                    <th className="px-8 py-5 text-[10px] font-bold text-slate-500 uppercase tracking-widest text-center">Status</th>
-                                    <th className="px-8 py-5 text-[10px] font-bold text-slate-500 uppercase tracking-widest text-right">Action / Proof</th>
+                                    <th className="px-4 py-3 sm:px-8 sm:py-5 text-[10px] font-bold text-slate-500 uppercase tracking-widest">ID</th>
+                                    <th className="px-4 py-3 sm:px-8 sm:py-5 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Description</th>
+                                    <th className="px-4 py-3 sm:px-8 sm:py-5 text-[10px] font-bold text-slate-500 uppercase tracking-widest">ATM / Bank</th>
+                                    <th className="px-4 py-3 sm:px-8 sm:py-5 text-[10px] font-bold text-slate-500 uppercase tracking-widest text-center">Status</th>
+                                    <th className="px-4 py-3 sm:px-8 sm:py-5 text-[10px] font-bold text-slate-500 uppercase tracking-widest text-right">Action / Proof</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -579,7 +580,7 @@ export default function AdminDashboard() {
                                     Array.from({ length: 5 }).map((_, i) => (
                                         <tr key={i} className="border-b border-white/5">
                                             {Array.from({ length: 5 }).map((_, j) => (
-                                                <td key={j} className="px-8 py-5">
+                                                <td key={j} className="px-4 py-3 sm:px-8 sm:py-5">
                                                     <div className="h-4 bg-white/5 rounded-lg animate-pulse" style={{ width: `${60 + (j * 10) % 30}%` }} />
                                                 </td>
                                             ))}
@@ -587,7 +588,7 @@ export default function AdminDashboard() {
                                     ))
                                 ) : tickets.length === 0 ? (
                                     <tr>
-                                        <td colSpan={5} className="px-8 py-20 text-center text-slate-500 text-sm italic">
+                                        <td colSpan={5} className="px-4 py-16 sm:px-8 sm:py-20 text-center text-slate-500 text-sm italic">
                                             No tickets found in the system. Create one above to get started.
                                         </td>
                                     </tr>
@@ -607,11 +608,11 @@ export default function AdminDashboard() {
                                     })
                                     .map((ticket) => (
                                         <tr key={ticket.id} className="border-b border-white/5 hover:bg-white/[0.02] transition-colors group">
-                                            <td className="px-8 py-5">
+                                            <td className="px-4 py-3 sm:px-8 sm:py-5">
                                                 <p className="text-xs font-black text-indigo-400 font-mono tracking-tighter">{ticket.ticket_no}</p>
                                                 <p className="text-[9px] text-slate-600 mt-1 uppercase font-bold">{new Date(ticket.created_at || "").toLocaleDateString()}</p>
                                             </td>
-                                            <td className="px-8 py-5 max-w-xs">
+                                            <td className="px-4 py-3 sm:px-8 sm:py-5 max-w-xs">
                                                 <p className="text-sm font-bold text-slate-200">{ticket.title}</p>
                                                 <p className="text-xs text-slate-500 line-clamp-1 mt-0.5">{ticket.description}</p>
                                                 {ticket.assigned_to && (
@@ -620,22 +621,12 @@ export default function AdminDashboard() {
                                                         Eng: {getEngineerName(ticket.assigned_to)}
                                                     </p>
                                                 )}
-                                                {ticket.check_ins && ticket.check_ins.length > 0 && (
-                                                    <div className="mt-2 space-y-1">
-                                                        <p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest">Recent Check-ins:</p>
-                                                        {ticket.check_ins.slice(0, 3).map((ci: any) => (
-                                                            <p key={ci.id} className="text-[9px] text-slate-400">
-                                                                {new Date(ci.checked_in_at).toLocaleTimeString()} @ {ci.latitude.toFixed(4)}, {ci.longitude.toFixed(4)}
-                                                            </p>
-                                                        ))}
-                                                    </div>
-                                                )}
                                             </td>
-                                            <td className="px-8 py-5">
+                                            <td className="px-4 py-3 sm:px-8 sm:py-5">
                                                 <p className="text-xs font-bold text-slate-300">{ticket.atm_id}</p>
                                                 <p className="text-[10px] text-slate-500 font-medium">{ticket.bank_id}</p>
                                             </td>
-                                            <td className="px-8 py-5">
+                                            <td className="px-4 py-3 sm:px-8 sm:py-5">
                                                 <div className="flex justify-center">
                                                     <span className={`text-[9px] font-black uppercase tracking-widest px-3 py-1 rounded-full ${
                                                         ticket.status === 'open' ? 'bg-amber-500/10 text-amber-500' :
@@ -647,7 +638,7 @@ export default function AdminDashboard() {
                                                     </span>
                                                 </div>
                                             </td>
-                                            <td className="px-8 py-5 text-right">
+                                            <td className="px-4 py-3 sm:px-8 sm:py-5 text-right">
                                                 <div className="flex items-center justify-end gap-4">
                                                     {ticket.status !== 'closed' && (
                                                         <button 
@@ -701,11 +692,6 @@ export default function AdminDashboard() {
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
                 onSuccess={fetchStats}
-            />
-            <DataImportModal
-                isOpen={isImportModalOpen}
-                onClose={() => setIsImportModalOpen(false)}
-                onSuccess={() => {}}
             />
         </div>
     );

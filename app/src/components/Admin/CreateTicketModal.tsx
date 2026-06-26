@@ -174,7 +174,7 @@ export default function CreateTicketModal({ isOpen, onClose, onSuccess }: Create
                     {/* Auto-populated ATM info */}
                     {selectedATM && (
                         <div className="p-4 bg-white/[0.03] border border-white/10 rounded-xl space-y-2">
-                            <div className="grid grid-cols-2 gap-3">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                 <div>
                                     <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Bank Name</p>
                                     <p className="text-sm text-white font-medium mt-0.5">{selectedATM.bank_name}</p>

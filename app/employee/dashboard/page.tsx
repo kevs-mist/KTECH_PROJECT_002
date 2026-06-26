@@ -206,9 +206,9 @@ export default function EmployeeDashboard() {
 
 
     return (
-        <div className="min-h-screen bg-[#f8fafc] text-slate-900 p-6 md:p-10 font-sans selection:bg-emerald-100">
+        <div className="min-h-screen bg-[#f8fafc] text-slate-900 p-6 md:p-10 px-4 sm:px-6 font-sans selection:bg-emerald-100">
             {/* Top Navigation */}
-            <nav className="flex justify-between items-center mb-10 bg-white p-6 rounded-[2.5rem] shadow-sm border border-slate-100">
+            <nav className="flex flex-col gap-6 sm:flex-row sm:items-center justify-between mb-10 bg-white p-6 rounded-[2.5rem] shadow-sm border border-slate-100">
                 <div className="flex items-center gap-4">
                     <img 
                         src="/images/prime_services_logo.png?v=1" 
@@ -226,8 +226,8 @@ export default function EmployeeDashboard() {
                         </div>
                     </div>
                 </div>
-                <div className="flex items-center gap-6">
-                    <div className="text-right hidden sm:block">
+                <div className="flex flex-col items-stretch gap-4 sm:flex-row sm:items-center">
+                    <div className="text-right sm:text-left">
                         <p className="text-xs font-black text-slate-900">{user?.email}</p>
                         <p className="text-[9px] text-emerald-600 uppercase tracking-widest font-black leading-none mt-1 bg-emerald-50 px-2 py-1 rounded-full">Field Engineer</p>
                     </div>
@@ -242,7 +242,7 @@ export default function EmployeeDashboard() {
 
             <main className="max-w-7xl mx-auto space-y-10">
                 {/* Stats */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
                     <div className="bg-white border border-slate-100 p-6 rounded-[2rem] shadow-sm">
                         <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">My Tasks</p>
                         <p className="text-3xl font-black text-slate-900 italic">{myTickets.length}</p>
@@ -275,7 +275,7 @@ export default function EmployeeDashboard() {
 
                         <div className="space-y-4">
                             {myTickets.length === 0 ? (
-                                <div className="bg-white rounded-[2rem] p-16 text-center border-2 border-dashed border-slate-200">
+                                <div className="bg-white rounded-[2rem] p-10 sm:p-16 text-center border-2 border-dashed border-slate-200">
                                     <p className="text-slate-400 text-xs font-bold uppercase tracking-widest italic">No active deployments</p>
                                 </div>
                             ) : (
@@ -371,7 +371,7 @@ export default function EmployeeDashboard() {
 
                         <div className="space-y-4">
                             {availableTickets.length === 0 ? (
-                                <div className="bg-white rounded-[2rem] p-16 text-center border-2 border-dashed border-slate-200">
+                                <div className="bg-white rounded-[2rem] p-10 sm:p-16 text-center border-2 border-dashed border-slate-200">
                                     <p className="text-slate-400 text-xs font-bold uppercase tracking-widest italic">All sites operational</p>
                                 </div>
                             ) : (
@@ -459,38 +459,38 @@ export default function EmployeeDashboard() {
                     </div>
 
                     <div className="bg-white border border-slate-200/60 rounded-[2rem] overflow-hidden shadow-sm">
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-left border-collapse">
+                        <div className="overflow-x-auto pb-2">
+                            <table className="w-full min-w-[720px] text-left border-collapse">
                                 <thead>
                                     <tr className="bg-slate-50/50 border-b border-slate-100">
-                                        <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Ticket #</th>
-                                        <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Issue</th>
-                                        <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Location</th>
-                                        <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Status</th>
-                                        <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Completed</th>
-                                        <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Actions</th>
+                                        <th className="px-4 py-3 sm:px-8 sm:py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Ticket #</th>
+                                        <th className="px-4 py-3 sm:px-8 sm:py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Issue</th>
+                                        <th className="px-4 py-3 sm:px-8 sm:py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Location</th>
+                                        <th className="px-4 py-3 sm:px-8 sm:py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Status</th>
+                                        <th className="px-4 py-3 sm:px-8 sm:py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Completed</th>
+                                        <th className="px-4 py-3 sm:px-8 sm:py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-50">
                                     {resolvedTickets.length === 0 ? (
                                         <tr>
-                                            <td colSpan={6} className="px-8 py-20 text-center">
+                                            <td colSpan={6} className="px-4 py-16 sm:px-8 sm:py-20 text-center">
                                                 <p className="text-slate-400 text-xs font-bold uppercase tracking-widest italic">No deployments completed yet</p>
                                             </td>
                                         </tr>
                                     ) : (
                                         resolvedTickets.map(ticket => (
                                             <tr key={ticket.id} className="group hover:bg-slate-50/30 transition-colors">
-                                                <td className="px-8 py-5">
+                                                <td className="px-4 py-3 sm:px-8 sm:py-5">
                                                     <span className="text-xs font-black text-slate-900 font-mono">{ticket.ticket_no}</span>
                                                 </td>
-                                                <td className="px-8 py-5">
+                                                <td className="px-4 py-3 sm:px-8 sm:py-5">
                                                     <div className="space-y-1">
                                                         <p className="text-sm font-bold text-slate-800">{ticket.title}</p>
                                                         <span className="text-[9px] font-black px-2 py-0.5 bg-emerald-50 text-emerald-600 rounded uppercase">{ticket.issue_type}</span>
                                                     </div>
                                                 </td>
-                                                <td className="px-8 py-5 max-w-[200px]">
+                                                <td className="px-4 py-3 sm:px-8 sm:py-5 max-w-[200px]">
                                                     <div className="flex items-center gap-2 text-xs font-semibold text-slate-500 min-w-0">
                                                         <svg className="w-3 h-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /></svg>
                                                         {ticket.atm_location?.startsWith('http') ? (
@@ -507,13 +507,13 @@ export default function EmployeeDashboard() {
                                                         )}
                                                     </div>
                                                 </td>
-                                                <td className="px-8 py-5">
+                                                <td className="px-4 py-3 sm:px-8 sm:py-5">
                                                     <span className="text-[9px] font-black uppercase tracking-widest bg-emerald-600 text-white px-3 py-1.5 rounded-full shadow-lg shadow-emerald-600/10">Resolved</span>
                                                 </td>
-                                                <td className="px-8 py-5">
+                                                <td className="px-4 py-3 sm:px-8 sm:py-5">
                                                     <p className="text-xs font-bold text-slate-400">{new Date(ticket.updated_at || ticket.created_at || '').toLocaleDateString()}</p>
                                                 </td>
-                                                <td className="px-8 py-5">
+                                                <td className="px-4 py-3 sm:px-8 sm:py-5">
                                                     <button
                                                         onClick={() => setSelectedTicket(ticket)}
                                                         className="p-2 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-all"
@@ -535,7 +535,7 @@ export default function EmployeeDashboard() {
             {/* Ticket Detail Modal */}
             {selectedTicket && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-xl animate-in fade-in duration-200">
-                    <div className="bg-white w-full max-w-4xl h-[85vh] md:h-[600px] max-h-[90vh] rounded-[2rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col md:flex-row">
+                    <div className="bg-white w-full max-w-4xl h-auto md:h-[600px] max-h-[90vh] rounded-[2rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col md:flex-row">
                         {/* Map/Image Side */}
                         <div className="md:w-5/12 bg-emerald-900 relative p-6 md:p-8 flex flex-col justify-between text-white hidden md:flex">
                             <div className="absolute inset-0 opacity-20 bg-[url('https://www.google.com/maps/vt/pb=!1m4!1m3!1i12!2i2345!3i1234!2m3!1e0!2sm!3i420120488!3m8!2sen!3sus!5e1105!12m4!1e68!2m2!1sset!2sRoadmap!4e0!5m1!1f2!6m8!1e1!2m2!1sIAq6iy_B_8EAAAQ0OEZpBQ!2e7!3e15!6m1!1i1!23i1308886')] bg-cover grayscale hover:grayscale-0 transition-all duration-700"></div>
@@ -561,7 +561,7 @@ export default function EmployeeDashboard() {
                         </div>
 
                         {/* Content Side */}
-                        <div className="md:w-7/12 relative flex flex-col h-full bg-white">
+                        <div className="md:w-7/12 relative flex flex-col min-h-0 h-full bg-white">
                             <button onClick={() => setSelectedTicket(null)} className="absolute top-4 right-4 p-2 bg-slate-100 hover:bg-red-50 text-slate-400 hover:text-red-500 rounded-full transition-all z-20 shadow-sm">
                                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
                             </button>
@@ -579,7 +579,7 @@ export default function EmployeeDashboard() {
                                     <p className="text-slate-700 text-sm leading-relaxed font-medium whitespace-pre-wrap ml-2">{selectedTicket.description}</p>
                                 </div>
 
-                                <div className="grid grid-cols-2 gap-4 mb-6">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
                                     <div className="p-5 bg-gradient-to-br from-slate-50 to-slate-100/50 rounded-2xl border border-slate-100">
                                         <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Bank Network</p>
                                         <p className="text-sm font-bold text-slate-800 line-clamp-1">{selectedTicket.bank_id}</p>

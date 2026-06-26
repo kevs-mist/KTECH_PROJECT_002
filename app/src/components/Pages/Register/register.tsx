@@ -103,7 +103,7 @@ export default function Register() {
                             />
                         </div>
 
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div className="form-group flex flex-col group">
                                 <label htmlFor="password" className="text-[10px] font-bold mb-1.5 text-slate-400 uppercase tracking-widest group-focus-within:text-emerald-600 transition-colors">
                                     Password

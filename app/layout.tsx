@@ -1,10 +1,16 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import "./src/lib/env";
 import Providers from "./providers";
 
 export const metadata: Metadata = {
   title: "Prime Services CRM",
   description: "Secure, real-time field operations and ticket management console for Prime field engineers and dispatch admins.",
+  viewport: {
+    width: "device-width",
+    initialScale: 1,
+    viewportFit: "cover",
+  },
 };
 
 export default function RootLayout({
