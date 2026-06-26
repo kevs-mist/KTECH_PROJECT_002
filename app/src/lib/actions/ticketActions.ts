@@ -4,7 +4,7 @@ import { Ticket } from "../services/ticketService";
 import { z } from "zod";
 import { sanitizeText } from "../security/sanitizer";
 import { revalidatePath } from "next/cache";
-import { sendNotification } from "../../../../utils/email";
+
 import { logAuditEvent } from "../server/apiSecurity";
 
 // Whitelist and Validation Schemas
@@ -148,14 +148,7 @@ export async function createTicketAction(idToken: string, ticket: Ticket) {
         metadata: { status: initialStatus, assignedTo: sanitizedData.assigned_to ?? null },
     });
 
-    // Trigger notification
-    if (initialStatus === "assigned") {
-        await sendNotification('ticket_assigned', data.id, 'employee');
-        await sendNotification('ticket_assigned', data.id, 'admin');
-    } else {
-        await sendNotification('ticket_created', data.id, 'open_pool');
-    }
-
+   
     return data;
 }
 
@@ -409,8 +402,7 @@ export async function assignTicketToEmployeeAction(idToken: string, ticketId: st
     revalidatePath("/", "layout");
 
     // Trigger notification
-    await sendNotification('ticket_assigned', ticketId, 'employee');
-    await sendNotification('ticket_assigned', ticketId, 'admin');
+   
 
     return data;
 }
