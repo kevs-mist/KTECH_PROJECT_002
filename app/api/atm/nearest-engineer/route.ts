@@ -9,6 +9,7 @@ import {
   requireVerifiedUser,
 } from "../../../src/lib/server/apiSecurity";
 
+ export const dynamic = 'force-dynamic';
 function calculateDistance(
   lat1: number,
   lon1: number,
