@@ -11,7 +11,6 @@ const requiredEnvVars = [
     'FIREBASE_PRIVATE_KEY',
     'FIREBASE_CLIENT_EMAIL',
     'RESEND_API_KEY',
-    'RESEND_FROM_EMAIL',
 ];
 
 if (typeof window === 'undefined') {

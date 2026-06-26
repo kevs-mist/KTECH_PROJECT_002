@@ -8,13 +8,21 @@ import {
     requireVerifiedUser,
 } from "../../../src/lib/server/apiSecurity";
 
+// 1. Force Next.js to skip pre-rendering this file at build time
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: Request) {
     try {
-        const limit = checkRateLimit({
-            key: `atm:list:${getClientIp(request)}`,
+        // 2. Safely capture the IP, falling back to a dummy string if empty during build
+        const ip = getClientIp(request) || "127.0.0.1";
+
+        // 3. Make sure to await checkRateLimit if it contacts an external store (like Redis)
+        const limit = await checkRateLimit({
+            key: `atm:list:${ip}`,
             limit: 120,
             windowMs: 60 * 1000,
         });
+        
         if (!limit.success) return rateLimitResponse(limit.resetAt);
 
         await requireVerifiedUser(request);
