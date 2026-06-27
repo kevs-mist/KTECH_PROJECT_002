@@ -33,7 +33,9 @@ interface AdminStats {
 
 export const ticketService = {
     async getIdToken() {
-        const token = await auth.currentUser?.getIdToken(true);
+        // Use cached token (false) to avoid hitting Firebase auth quota.
+        // Firebase SDK auto-refreshes when the token is actually expired.
+        const token = await auth.currentUser?.getIdToken(false);
         if (!token) throw new Error("Unauthorized: Please log in again.");
         return token;
     },

@@ -11,6 +11,8 @@ function diagnosticsAllowed() {
     return process.env.NODE_ENV === "development" && process.env.VERCEL_ENV !== "production";
 }
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: Request) {
     if (!diagnosticsAllowed()) {
         return NextResponse.json({ error: "Not found" }, { status: 404 });

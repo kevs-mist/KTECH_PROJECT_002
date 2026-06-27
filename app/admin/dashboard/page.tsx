@@ -77,7 +77,7 @@ export default function AdminDashboard() {
         try {
             setRequestsLoading(true);
             setRequestError(null);
-            const token = await user?.getIdToken(true);
+            const token = await user?.getIdToken(false);
             if (!token) throw new Error("Unauthorized: Please log in again.");
 
             const response = await fetch('/api/admin-requests', {
@@ -208,7 +208,7 @@ export default function AdminDashboard() {
         }
 
         try {
-            const token = await user?.getIdToken(true);
+            const token = await user?.getIdToken(false);
             if (!token) throw new Error("Unauthorized: Please log in again.");
 
             const response = await fetch('/api/admin-requests/approve', {
@@ -232,7 +232,7 @@ export default function AdminDashboard() {
 
     const handleRejectRequest = async (requestId: string) => {
         try {
-            const token = await user?.getIdToken(true);
+            const token = await user?.getIdToken(false);
             if (!token) throw new Error("Unauthorized: Please log in again.");
 
             const response = await fetch('/api/admin-requests/approve', {

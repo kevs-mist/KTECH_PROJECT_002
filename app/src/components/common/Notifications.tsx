@@ -23,6 +23,53 @@ export default function Notifications() {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
+  // Play a pleasant notification chime sound
+  const playNotificationSound = () => {
+    try {
+      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      
+      // First tone (higher pitch)
+      const osc1 = audioContext.createOscillator();
+      const gain1 = audioContext.createGain();
+      osc1.connect(gain1);
+      gain1.connect(audioContext.destination);
+      osc1.frequency.value = 587.33; // D5
+      osc1.type = 'sine';
+      gain1.gain.setValueAtTime(0.15, audioContext.currentTime);
+      gain1.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+      osc1.start(audioContext.currentTime);
+      osc1.stop(audioContext.currentTime + 0.3);
+
+      // Second tone (even higher, delayed slightly for chime effect)
+      const osc2 = audioContext.createOscillator();
+      const gain2 = audioContext.createGain();
+      osc2.connect(gain2);
+      gain2.connect(audioContext.destination);
+      osc2.frequency.value = 880; // A5
+      osc2.type = 'sine';
+      gain2.gain.setValueAtTime(0, audioContext.currentTime + 0.15);
+      gain2.gain.linearRampToValueAtTime(0.12, audioContext.currentTime + 0.2);
+      gain2.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+      osc2.start(audioContext.currentTime + 0.15);
+      osc2.stop(audioContext.currentTime + 0.5);
+
+      // Third tone (highest, for that satisfying ding)
+      const osc3 = audioContext.createOscillator();
+      const gain3 = audioContext.createGain();
+      osc3.connect(gain3);
+      gain3.connect(audioContext.destination);
+      osc3.frequency.value = 1174.66; // D6
+      osc3.type = 'sine';
+      gain3.gain.setValueAtTime(0, audioContext.currentTime + 0.3);
+      gain3.gain.linearRampToValueAtTime(0.1, audioContext.currentTime + 0.35);
+      gain3.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.8);
+      osc3.start(audioContext.currentTime + 0.3);
+      osc3.stop(audioContext.currentTime + 0.8);
+    } catch (error) {
+      console.log("Could not play notification sound:", error);
+    }
+  };
+
   // Request browser notification permission
   const requestNotificationPermission = async () => {
     if (!("Notification" in window)) {
@@ -33,6 +80,7 @@ export default function Notifications() {
     const permission = await Notification.requestPermission();
     if (permission === "granted") {
       setShowPermissionPrompt(false);
+      playNotificationSound();
       // Show a test notification
       new Notification("Notifications Enabled", {
         body: "You will now receive notifications for new tickets.",
@@ -92,7 +140,10 @@ export default function Notifications() {
           table: 'notifications',
           filter: `recipient_id=eq.${uid}`
         },
-        () => {
+        (payload) => {
+          if (payload.eventType === 'INSERT') {
+            playNotificationSound();
+          }
           fetchNotifications();
         }
       )

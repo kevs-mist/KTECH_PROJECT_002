@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "../../../../utils/supabase/admin";
 import {
     checkRateLimit,
@@ -10,7 +10,7 @@ import {
 
  export const dynamic = 'force-dynamic';
 
-export async function GET(request: Request, context: { params: Promise<{ atmId: string }> }) {
+export async function GET(request: NextRequest, context: { params: Promise<{ atmId: string }> }) {
   try {
     const limit = checkRateLimit({
       key: `atm:detail:${getClientIp(request)}`,

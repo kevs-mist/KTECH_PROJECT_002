@@ -17,7 +17,7 @@ export interface EmployeeProfile {
 
 export const employeeService = {
     async getIdToken() {
-        const token = await auth.currentUser?.getIdToken(true);
+        const token = await auth.currentUser?.getIdToken(false);
         if (!token) throw new Error("Unauthorized: Please log in again.");
         return token;
     },

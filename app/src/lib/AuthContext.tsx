@@ -45,7 +45,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 
                 // Fetch Role securely from Server
                 try {
-                    const idToken = await firebaseUser.getIdToken(true);
+                    const idToken = await firebaseUser.getIdToken(false);
                     const verifiedRole = await fetchUserRole(idToken);
                     setRole(verifiedRole);
                 } catch (err) {
@@ -71,7 +71,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         const interval = setInterval(async () => {
             try {
-                const idToken = await user.getIdToken(true);
+                const idToken = await user.getIdToken(false);
                 const verifiedRole = await fetchUserRole(idToken);
                 setRole(verifiedRole);
             } catch (err) {
