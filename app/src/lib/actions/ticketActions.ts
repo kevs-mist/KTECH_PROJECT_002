@@ -6,6 +6,8 @@ import { sanitizeText } from "../security/sanitizer";
 import { revalidatePath } from "next/cache";
 
 import { logAuditEvent } from "../server/apiSecurity";
+import { sendTicketVerification } from "../../../../utils/email";
+import { notifyOnlineEmployeesAction, createNotificationAction } from "./notificationActions";
 
 // Whitelist and Validation Schemas
 const ticketCreateSchema = z.object({
@@ -148,7 +150,46 @@ export async function createTicketAction(idToken: string, ticket: Ticket) {
         metadata: { status: initialStatus, assignedTo: sanitizedData.assigned_to ?? null },
     });
 
-   
+    // Send ticket verification email
+    try {
+        const { data: userData } = await supabase
+            .from("users")
+            .select("email, full_name")
+            .eq("firebase_uid", uid)
+            .single();
+        
+        if (userData?.email) {
+            await sendTicketVerification(data, userData.email, userData.full_name);
+        }
+    } catch (emailError) {
+        // Log email error but don't fail the ticket creation
+        console.error("Failed to send ticket verification email:", emailError);
+    }
+
+    // Create in-app notification
+    try {
+        if (initialStatus === "open") {
+            // Notify all online employees about new ticket in open pool
+            await notifyOnlineEmployeesAction(
+                "ticket_open_pool",
+                "New Ticket Available",
+                `A new ticket "${validatedData.title}" is now available in the open pool.`,
+                data.id
+            );
+        } else if (sanitizedData.assigned_to) {
+            // Notify the assigned employee
+            await createNotificationAction(
+                sanitizedData.assigned_to,
+                "ticket_assigned",
+                "Ticket Assigned to You",
+                `You have been assigned ticket "${validatedData.title}".`,
+                data.id
+            );
+        }
+    } catch (notifError) {
+        console.error("Failed to create notification:", notifError);
+    }
+
     return data;
 }
 
@@ -401,8 +442,18 @@ export async function assignTicketToEmployeeAction(idToken: string, ticketId: st
     });
     revalidatePath("/", "layout");
 
-    // Trigger notification
-   
+    // Create notification for assigned employee
+    try {
+        await createNotificationAction(
+            employeeUid,
+            "ticket_assigned",
+            "Ticket Assigned to You",
+            `You have been assigned a new ticket. Please check your dashboard.`,
+            ticketId
+        );
+    } catch (notifError) {
+        console.error("Failed to create assignment notification:", notifError);
+    }
 
     return data;
 }

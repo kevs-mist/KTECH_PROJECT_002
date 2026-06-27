@@ -1,5 +1,6 @@
 import { verifyUserRoleAction } from "./authActions";
 import { createAdminClient } from "../../../../utils/supabase/admin";
+import { sendEmployeeVerification } from "../../../../utils/email";
 
 export interface EmployeeProfile {
     firebase_uid: string;
@@ -93,12 +94,29 @@ export async function getEmployeesAction(idToken: string): Promise<EmployeeProfi
 
 /**
  * Updates the online status of an employee.
+ * Only employees can update their own online status.
  */
 export async function setEmployeeOnlineStatusAction(idToken: string, isOnline: boolean) {
     const { role, uid } = await verifyUserRoleAction(idToken);
-    if (role !== "employee") return; // Silently ignore for non-employees
+    if (role !== "employee") {
+        console.log("Online status update ignored: user is not an employee");
+        return;
+    }
 
     const supabase = createAdminClient();
+    
+    // First, verify the employee exists and is active
+    const { data: employee } = await supabase
+        .from("employees")
+        .select("status")
+        .eq("firebase_uid", uid)
+        .single();
+
+    if (!employee || employee.status !== "active") {
+        console.log("Online status update ignored: employee not found or not active");
+        return;
+    }
+
     const { error } = await supabase
         .from("employees")
         .update({

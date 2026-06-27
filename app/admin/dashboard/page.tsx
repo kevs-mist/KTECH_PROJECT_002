@@ -127,10 +127,17 @@ export default function AdminDashboard() {
         if (!user) return;
 
         const channel = supabase
-            .channel('admin-db-changes')
+            .channel(`admin-dashboard-${user.uid}`)
             .on(
                 'postgres_changes',
                 { event: '*', schema: 'public', table: 'tickets' },
+                () => {
+                    debouncedFetch();
+                }
+            )
+            .on(
+                'postgres_changes',
+                { event: '*', schema: 'public', table: 'employees' },
                 () => {
                     debouncedFetch();
                 }
@@ -381,42 +388,42 @@ export default function AdminDashboard() {
     };
 
     return (
-        <div className="min-h-screen bg-slate-900 text-white">
-            <main className="p-4 md:p-8 px-4 sm:px-6 max-w-7xl mx-auto">
+        <div className="min-h-screen" style={{ background: 'var(--bg-base)', color: 'var(--text-primary)' }}>
+            <main className="p-8 max-w-7xl mx-auto page-enter">
                 {/* Admin Requests Section */}
-                <div className="mt-8 bg-white/[0.02] border border-white/5 rounded-[2rem] p-8">
+                <div className="mt-8 p-6" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: '8px' }}>
                     <div className="flex items-center justify-between mb-6">
-                        <h3 className="text-xl font-black italic uppercase tracking-tighter">Pending Admin Requests</h3>
-                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                        <h3 className="text-lg font-semibold" style={{ letterSpacing: '-0.02em' }}>Pending Admin Requests</h3>
+                        <span className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: 'var(--text-secondary)' }}>
                             {requests.length} Pending
                         </span>
                     </div>
                     
                     {requestError && (
-                        <div className="mb-4 bg-red-500/10 border border-red-500/20 text-red-400 px-4 py-3 rounded-lg text-sm">
+                        <div className="mb-4 px-4 py-3 rounded-lg text-sm" style={{ background: 'var(--error-soft)', border: '1px solid var(--error)', color: 'var(--error)' }}>
                             {requestError}
                         </div>
                     )}
                     {requestSuccess && (
-                        <div className="mb-4 bg-green-500/10 border border-green-500/20 text-green-400 px-4 py-3 rounded-lg text-sm">
+                        <div className="mb-4 px-4 py-3 rounded-lg text-sm" style={{ background: 'var(--success-soft)', border: '1px solid var(--success)', color: 'var(--success)' }}>
                             {requestSuccess}
                         </div>
                     )}
                     
                     {requestsLoading ? (
-                        <div className="text-slate-400 text-sm">Loading requests...</div>
+                        <div className="text-sm" style={{ color: 'var(--text-secondary)' }}>Loading requests...</div>
                     ) : requests.length === 0 ? (
-                        <div className="text-slate-400 text-sm">No pending admin requests</div>
+                        <div className="text-sm" style={{ color: 'var(--text-secondary)' }}>No pending admin requests</div>
                     ) : (
                         <div className="space-y-4">
                             {requests.map((request) => (
-                                <div key={request.id} className="bg-white/[0.03] border border-white/10 p-4 rounded-xl">
+                                <div key={request.id} className="p-4 rounded-lg" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)' }}>
                                     <div className="flex justify-between items-start mb-4">
                                         <div>
-                                            <p className="font-bold text-sm text-white">{request.email}</p>
-                                            <p className="text-xs text-slate-500">Requested: {new Date(request.created_at).toLocaleDateString()}</p>
+                                            <p className="font-semibold text-sm">{request.email}</p>
+                                            <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>Requested: {new Date(request.created_at).toLocaleDateString()}</p>
                                         </div>
-                                        <span className="bg-yellow-500/10 text-yellow-400 px-3 py-1 rounded-full text-xs font-bold uppercase">
+                                        <span className="text-[11px] font-semibold uppercase tracking-widest px-2.5 py-0.5 rounded-full" style={{ background: 'var(--warning-soft)', color: 'var(--warning)', border: '1px solid var(--warning)30' }}>
                                             Pending
                                         </span>
                                     </div>
@@ -428,18 +435,18 @@ export default function AdminDashboard() {
                                                 placeholder="Enter secret code (min 4 chars)"
                                                 value={secretCode[request.id] || ''}
                                                 onChange={(e) => setSecretCode({ ...secretCode, [request.id]: e.target.value })}
-                                                className="w-full bg-white/[0.05] border border-white/10 px-4 py-3 rounded-lg text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+                                                className="w-full px-4 py-2 rounded-lg text-sm focus:outline-none focus:ring-0" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
                                             />
                                             <div className="flex gap-2">
                                                 <button
                                                     onClick={() => handleApproveRequest(request.id)}
-                                                    className="bg-green-600 hover:bg-green-500 px-4 py-2 rounded-lg text-xs font-bold transition-all"
+                                                    className="px-4 py-2 rounded-lg text-xs font-semibold transition-all" style={{ background: 'var(--success)', color: 'white', borderRadius: '6px' }}
                                                 >
                                                     Approve with Code
                                                 </button>
                                                 <button
                                                     onClick={() => setShowSecretInput({ ...showSecretInput, [request.id]: false })}
-                                                    className="bg-white/10 hover:bg-white/20 px-4 py-2 rounded-lg text-xs font-bold transition-all"
+                                                    className="px-4 py-2 rounded-lg text-xs font-semibold transition-all" style={{ background: 'transparent', border: '1px solid var(--border)', color: 'var(--text-secondary)', borderRadius: '6px' }}
                                                 >
                                                     Cancel
                                                 </button>
@@ -449,13 +456,15 @@ export default function AdminDashboard() {
                                         <div className="flex gap-2">
                                             <button
                                                 onClick={() => setShowSecretInput({ ...showSecretInput, [request.id]: true })}
-                                                className="bg-green-600 hover:bg-green-500 px-4 py-2 rounded-lg text-xs font-bold transition-all"
+                                                className="px-4 py-2 rounded-lg text-xs font-semibold transition-all"
+                                                style={{ background: 'var(--success)', color: 'white', borderRadius: '6px' }}
                                             >
                                                 Approve
                                             </button>
                                             <button
                                                 onClick={() => handleRejectRequest(request.id)}
-                                                className="bg-red-600 hover:bg-red-500 px-4 py-2 rounded-lg text-xs font-bold transition-all"
+                                                className="px-4 py-2 rounded-lg text-xs font-semibold transition-all"
+                                                style={{ background: 'var(--error)', color: 'white', borderRadius: '6px' }}
                                             >
                                                 Reject
                                             </button>
@@ -468,21 +477,21 @@ export default function AdminDashboard() {
                 </div>
 
                 {/* Stats Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mt-8">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-0 mt-8" style={{ border: '1px solid var(--border)', borderRadius: '8px', overflow: 'hidden' }}>
                     {[
-                        { label: "Total System Tickets", value: stats.total, badge: "ALL TIME", badgeClass: "bg-indigo-500/10 text-indigo-400", hoverClass: "group-hover:text-indigo-400" },
-                        { label: "Unresolved Issues", value: stats.open, badge: "ACTIVE NOW", badgeClass: "bg-amber-500/10 text-amber-400", hoverClass: "group-hover:text-amber-400" },
-                        { label: "Escalated Issues", value: stats.escalated, badge: "CRITICAL REVIEW", badgeClass: "bg-red-500/10 text-red-400", hoverClass: "group-hover:text-red-400" },
-                        { label: "Closed Tickets", value: stats.closed, badge: "SOLVED", badgeClass: "bg-emerald-500/10 text-emerald-400", hoverClass: "group-hover:text-emerald-400" },
-                    ].map(({ label, value, badge, badgeClass, hoverClass }) => (
-                        <div key={label} className="bg-white/[0.03] border border-white/10 p-8 rounded-[2rem] hover:bg-white/[0.05] transition-all group">
-                            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-4">{label}</p>
+                        { label: "Total System Tickets", value: stats.total, badge: "ALL TIME" },
+                        { label: "Unresolved Issues", value: stats.open, badge: "ACTIVE NOW" },
+                        { label: "Escalated Issues", value: stats.escalated, badge: "CRITICAL" },
+                        { label: "Closed Tickets", value: stats.closed, badge: "SOLVED" },
+                    ].map(({ label, value, badge }, index) => (
+                        <div key={label} className="p-6" style={{ borderRight: index < 3 ? '1px solid var(--border-subtle)' : 'none' }}>
+                            <p className="text-[11px] font-semibold uppercase tracking-widest mb-2" style={{ color: 'var(--text-secondary)' }}>{label}</p>
                             <div className="flex items-end justify-between">
                                 {isLoading
-                                    ? <div className="h-12 w-16 bg-white/5 rounded-xl animate-pulse" />
-                                    : <p className={`text-5xl font-black italic text-white transition-colors ${hoverClass}`}>{value}</p>
+                                    ? <div className="h-10 w-12 rounded" style={{ background: 'var(--bg-elevated)' }} />
+                                    : <p className="text-3xl font-semibold" style={{ letterSpacing: '-0.02em' }}>{value}</p>
                                 }
-                                <span className={`text-[10px] px-3 py-1 rounded-full font-bold ${badgeClass}`}>{badge}</span>
+                                <span className="text-[11px] font-semibold uppercase tracking-widest px-2 py-0.5 rounded-full" style={{ background: 'var(--bg-elevated)', color: 'var(--text-secondary)' }}>{badge}</span>
                             </div>
                         </div>
                     ))}
@@ -490,32 +499,34 @@ export default function AdminDashboard() {
 
                 {/* Error banner */}
                 {fetchError && (
-                    <div className="mt-8 p-4 bg-red-500/10 border border-red-500/20 text-red-400 text-sm rounded-2xl flex items-center gap-3">
+                    <div className="mt-8 p-4 text-sm rounded-lg flex items-center gap-3" style={{ background: 'var(--error-soft)', border: '1px solid var(--error)', color: 'var(--error)' }}>
                         <svg className="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
                         <span><strong>Load failed:</strong> {fetchError}</span>
-                        <button onClick={fetchStats} className="ml-auto text-xs underline hover:text-red-300">Retry</button>
+                        <button onClick={fetchStats} className="ml-auto text-xs underline" style={{ color: 'var(--error)' }}>Retry</button>
                     </div>
                 )}
 
                 {/* Operations Header */}
                 <div className="mt-12 flex flex-col gap-4 md:flex-row md:items-end justify-between">
                     <div>
-                        <h3 className="text-2xl font-black italic uppercase tracking-tighter">Operational Controls</h3>
-                        <p className="text-slate-500 text-[10px] font-black uppercase tracking-[0.2em] mt-1">Live Ticket Management & Deployment</p>
+                        <h3 className="text-xl font-semibold" style={{ letterSpacing: '-0.02em' }}>Operational Controls</h3>
+                        <p className="text-[11px] font-semibold uppercase tracking-widest mt-1" style={{ color: 'var(--text-secondary)' }}>Live Ticket Management & Deployment</p>
                     </div>
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
                         <button 
                             onClick={handleExportExcel}
-                            className="bg-white/5 border border-white/10 hover:bg-white/10 text-white px-8 py-3.5 rounded-2xl font-black uppercase text-xs tracking-widest transition-all flex items-center gap-2"
+                            className="px-6 py-2.5 font-semibold text-xs uppercase tracking-widest transition-all flex items-center gap-2"
+                            style={{ background: 'transparent', border: '1px solid var(--border)', color: 'var(--text-secondary)', borderRadius: '6px' }}
                         >
                             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                             </svg>
                             Export Excel
                         </button>
                         <button 
                             onClick={() => setIsModalOpen(true)}
-                            className="bg-indigo-600 text-white px-8 py-3.5 rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-indigo-500 transition-all shadow-xl shadow-indigo-600/20"
+                            className="px-6 py-2.5 font-semibold text-xs uppercase tracking-widest transition-all"
+                            style={{ background: 'var(--accent)', color: 'white', borderRadius: '6px' }}
                         >
                             + Create New Ticket
                         </button>
@@ -524,16 +535,20 @@ export default function AdminDashboard() {
 
                 {/* Operations Bar: Search & Filters */}
                 <div className="mt-8 mb-6 flex flex-col md:flex-row gap-4 items-center justify-between">
-                    <div className="flex items-center gap-1 bg-white/5 p-1 rounded-2xl border border-white/5 w-full md:w-auto overflow-x-auto no-scrollbar">
+                    <div className="flex items-center gap-1 p-1 rounded-lg w-full md:w-auto overflow-x-auto no-scrollbar" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}>
                         {["all", "open", "assigned", "in_progress", "re_raised", "closed"].map((s) => (
                             <button
                                 key={s}
                                 onClick={() => setFilterStatus(s)}
-                                className={`text-[10px] font-black uppercase tracking-widest px-5 py-2.5 rounded-xl transition-all whitespace-nowrap ${
+                                className={`text-[11px] font-semibold uppercase tracking-widest px-4 py-2 rounded-md transition-all whitespace-nowrap ${
                                     filterStatus === s 
-                                    ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/20" 
-                                    : "text-slate-500 hover:text-slate-300 hover:bg-white/5"
+                                    ? "" 
+                                    : ""
                                 }`}
+                                style={filterStatus === s 
+                                    ? { background: 'var(--bg-elevated)', color: 'var(--text-primary)' }
+                                    : { color: 'var(--text-secondary)' }
+                                }
                             >
                                 {s === 're_raised' ? 'Escalated' : s === 'in_progress' ? 'Working' : s}
                             </button>
@@ -541,9 +556,9 @@ export default function AdminDashboard() {
                     </div>
 
                     <div className="relative w-full md:w-80 group">
-                        <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
-                            <svg className="w-4 h-4 text-slate-500 group-focus-within:text-indigo-400 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
+                            <svg className="w-4 h-4 transition-colors" style={{ color: 'var(--text-muted)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                             </svg>
                         </div>
                         <input 
@@ -551,7 +566,8 @@ export default function AdminDashboard() {
                             placeholder="Search ATM ID or Bank ID..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="w-full bg-white/[0.03] border border-white/10 rounded-2xl pl-12 pr-4 py-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:bg-white/[0.07] transition-all placeholder:text-slate-600 font-medium"
+                            className="w-full rounded-lg pl-10 pr-4 py-2 text-sm focus:outline-none focus:ring-0 transition-all font-medium"
+                            style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
                         />
                     </div>
                 </div>
@@ -559,36 +575,36 @@ export default function AdminDashboard() {
                 {/* Recent Tickets List */}
                 <div className="mt-12">
                     <div className="flex items-center justify-between mb-6 px-4">
-                        <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.3em]">Recent Activity</h3>
-                        <div className="h-px flex-1 bg-white/5 mx-8"></div>
+                        <h3 className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: 'var(--text-secondary)' }}>Recent Activity</h3>
+                        <div className="h-px flex-1 mx-8" style={{ background: 'var(--border-subtle)' }}></div>
                     </div>
 
-                    <div className="bg-white/[0.02] border border-white/5 rounded-[2.5rem] overflow-x-auto pb-2">
+                    {/* Desktop Table View */}
+                    <div className="hidden md:block overflow-x-auto pb-2" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: '8px' }}>
                         <table className="w-full min-w-[720px] text-left border-collapse">
                             <thead>
-                                <tr className="border-b border-white/5">
-                                    <th className="px-4 py-3 sm:px-8 sm:py-5 text-[10px] font-bold text-slate-500 uppercase tracking-widest">ID</th>
-                                    <th className="px-4 py-3 sm:px-8 sm:py-5 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Description</th>
-                                    <th className="px-4 py-3 sm:px-8 sm:py-5 text-[10px] font-bold text-slate-500 uppercase tracking-widest">ATM / Bank</th>
-                                    <th className="px-4 py-3 sm:px-8 sm:py-5 text-[10px] font-bold text-slate-500 uppercase tracking-widest text-center">Status</th>
-                                    <th className="px-4 py-3 sm:px-8 sm:py-5 text-[10px] font-bold text-slate-500 uppercase tracking-widest text-right">Action / Proof</th>
+                                <tr style={{ borderBottom: '1px solid var(--border-subtle)' }}>
+                                    <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-widest" style={{ color: 'var(--text-secondary)' }}>ID</th>
+                                    <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-widest" style={{ color: 'var(--text-secondary)' }}>Description</th>
+                                    <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-widest" style={{ color: 'var(--text-secondary)' }}>ATM / Bank</th>
+                                    <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-widest text-center" style={{ color: 'var(--text-secondary)' }}>Status</th>
+                                    <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-widest text-right" style={{ color: 'var(--text-secondary)' }}>Action / Proof</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {isLoading ? (
-                                    // Skeleton rows while waiting for auth + data fetch
                                     Array.from({ length: 5 }).map((_, i) => (
-                                        <tr key={i} className="border-b border-white/5">
+                                        <tr key={i} style={{ borderBottom: '1px solid var(--border-subtle)' }}>
                                             {Array.from({ length: 5 }).map((_, j) => (
-                                                <td key={j} className="px-4 py-3 sm:px-8 sm:py-5">
-                                                    <div className="h-4 bg-white/5 rounded-lg animate-pulse" style={{ width: `${60 + (j * 10) % 30}%` }} />
+                                                <td key={j} className="px-4 py-3">
+                                                    <div className="h-4 rounded" style={{ width: `${60 + (j * 10) % 30}%`, background: 'var(--bg-elevated)' }} />
                                                 </td>
                                             ))}
                                         </tr>
                                     ))
                                 ) : tickets.length === 0 ? (
                                     <tr>
-                                        <td colSpan={5} className="px-4 py-16 sm:px-8 sm:py-20 text-center text-slate-500 text-sm italic">
+                                        <td colSpan={5} className="px-4 py-16 text-center text-sm italic" style={{ color: 'var(--text-secondary)' }}>
                                             No tickets found in the system. Create one above to get started.
                                         </td>
                                     </tr>
@@ -606,44 +622,52 @@ export default function AdminDashboard() {
                                             engineerName.includes(search);
                                         return matchesStatus && matchesSearch;
                                     })
-                                    .map((ticket) => (
-                                        <tr key={ticket.id} className="border-b border-white/5 hover:bg-white/[0.02] transition-colors group">
-                                            <td className="px-4 py-3 sm:px-8 sm:py-5">
-                                                <p className="text-xs font-black text-indigo-400 font-mono tracking-tighter">{ticket.ticket_no}</p>
-                                                <p className="text-[9px] text-slate-600 mt-1 uppercase font-bold">{new Date(ticket.created_at || "").toLocaleDateString()}</p>
+                                    .map((ticket) => {
+                                        const getBadgeStyle = (status: string) => {
+                                            const styles: Record<string, { bg: string; color: string; border: string }> = {
+                                                open: { bg: 'var(--accent-soft)', color: '#60a5fa', border: '#2563eb30' },
+                                                closed: { bg: 'var(--success-soft)', color: '#4ade80', border: '#16a34a30' },
+                                                re_raised: { bg: 'var(--error-soft)', color: '#f87171', border: '#dc262630' },
+                                                assigned: { bg: 'var(--accent-soft)', color: '#60a5fa', border: '#2563eb30' },
+                                                in_progress: { bg: 'var(--warning-soft)', color: '#fbbf24', border: '#d9770630' },
+                                            };
+                                            return styles[status] || { bg: 'var(--accent-soft)', color: '#60a5fa', border: '#2563eb30' };
+                                        };
+                                        const badgeStyle = getBadgeStyle(ticket.status || 'open');
+                                        return (
+                                        <tr key={ticket.id} style={{ borderBottom: '1px solid var(--border-subtle)' }} className="hover:bg-[var(--bg-elevated)] transition-colors">
+                                            <td className="px-4 py-3">
+                                                <p className="text-xs font-semibold font-mono" style={{ color: 'var(--text-secondary)' }}>{ticket.ticket_no}</p>
+                                                <p className="text-[11px] mt-1 uppercase font-semibold" style={{ color: 'var(--text-muted)' }}>{new Date(ticket.created_at || "").toLocaleDateString()}</p>
                                             </td>
-                                            <td className="px-4 py-3 sm:px-8 sm:py-5 max-w-xs">
-                                                <p className="text-sm font-bold text-slate-200">{ticket.title}</p>
-                                                <p className="text-xs text-slate-500 line-clamp-1 mt-0.5">{ticket.description}</p>
+                                            <td className="px-4 py-3 max-w-xs">
+                                                <p className="text-sm font-semibold">{ticket.title}</p>
+                                                <p className="text-xs line-clamp-1 mt-0.5" style={{ color: 'var(--text-secondary)' }}>{ticket.description}</p>
                                                 {ticket.assigned_to && (
-                                                    <p className="text-[10px] text-indigo-400 font-black uppercase tracking-widest mt-1.5 flex items-center gap-1.5">
-                                                        <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse"></span>
+                                                    <p className="text-[11px] font-semibold uppercase tracking-widest mt-1.5 flex items-center gap-1.5" style={{ color: 'var(--accent)' }}>
+                                                        <span className="w-1.5 h-1.5 rounded-full" style={{ background: 'var(--accent)' }}></span>
                                                         Eng: {getEngineerName(ticket.assigned_to)}
                                                     </p>
                                                 )}
                                             </td>
-                                            <td className="px-4 py-3 sm:px-8 sm:py-5">
-                                                <p className="text-xs font-bold text-slate-300">{ticket.atm_id}</p>
-                                                <p className="text-[10px] text-slate-500 font-medium">{ticket.bank_id}</p>
+                                            <td className="px-4 py-3">
+                                                <p className="text-xs font-semibold">{ticket.atm_id}</p>
+                                                <p className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>{ticket.bank_id}</p>
                                             </td>
-                                            <td className="px-4 py-3 sm:px-8 sm:py-5">
+                                            <td className="px-4 py-3">
                                                 <div className="flex justify-center">
-                                                    <span className={`text-[9px] font-black uppercase tracking-widest px-3 py-1 rounded-full ${
-                                                        ticket.status === 'open' ? 'bg-amber-500/10 text-amber-500' :
-                                                        ticket.status === 'closed' ? 'bg-emerald-500/10 text-emerald-400' :
-                                                        ticket.status === 're_raised' ? 'bg-red-500/10 text-red-400' :
-                                                        'bg-indigo-500/10 text-indigo-400'
-                                                    }`}>
-                                                        {ticket.status === 're_raised' ? 'ESCALATED' : ticket.status}
+                                                    <span className="text-[11px] font-semibold uppercase tracking-widest px-2.5 py-0.5 rounded-full" style={{ background: badgeStyle.bg, color: badgeStyle.color, border: `1px solid ${badgeStyle.border}` }}>
+                                                        {ticket.status === 're_raised' ? 'ESCALATED' : ticket.status === 'in_progress' ? 'WORKING' : ticket.status}
                                                     </span>
                                                 </div>
                                             </td>
-                                            <td className="px-4 py-3 sm:px-8 sm:py-5 text-right">
-                                                <div className="flex items-center justify-end gap-4">
+                                            <td className="px-4 py-3 text-right">
+                                                <div className="flex items-center justify-end gap-2">
                                                     {ticket.status !== 'closed' && (
                                                         <button 
                                                             onClick={() => handleCloseTicket(ticket)}
-                                                            className="text-[9px] font-black uppercase tracking-widest bg-white/5 hover:bg-emerald-500 hover:text-white border border-white/10 px-3 py-1.5 rounded-lg transition-all shrink-0"
+                                                            className="text-[11px] font-semibold uppercase tracking-widest px-3 py-1.5 rounded-md transition-all shrink-0"
+                                                            style={{ background: 'transparent', border: '1px solid var(--border)', color: 'var(--text-secondary)', borderRadius: '6px' }}
                                                         >
                                                             Close ✓
                                                         </button>
@@ -651,39 +675,139 @@ export default function AdminDashboard() {
                                                     {ticket.status === 're_raised' && (
                                                         <button 
                                                             onClick={() => handleReleaseTicket(ticket)}
-                                                            className="text-[9px] font-black uppercase tracking-widest bg-amber-500/10 hover:bg-amber-500 text-amber-400 hover:text-white border border-amber-500/20 px-3 py-1.5 rounded-lg transition-all shrink-0"
+                                                            className="text-[11px] font-semibold uppercase tracking-widest px-3 py-1.5 rounded-md transition-all shrink-0"
+                                                            style={{ background: 'var(--warning-soft)', border: '1px solid var(--warning)', color: 'var(--warning)', borderRadius: '6px' }}
                                                         >
-                                                            Release to Pool ↩
+                                                            Release ↩
                                                         </button>
                                                     )}
                                                     {ticket.proof_media_url ? (
-                                                        <div className="flex flex-col items-end gap-1.5">
-                                                            <a href={ticket.proof_media_url} target="_blank" rel="noopener noreferrer" className="relative group block w-16 h-12 rounded-lg overflow-hidden border border-white/10 shrink-0 bg-black/20">
-                                                                <img src={ticket.proof_media_url} alt="Proof" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" />
-                                                                <div className="absolute inset-0 bg-emerald-500/80 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                                                                    <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0zM2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
-                                                                </div>
-                                                            </a>
-                                                            {ticket.resolution_notes && (
-                                                                <div className="text-[8px] text-slate-400 max-w-[120px] truncate italic" title={ticket.resolution_notes}>
-                                                                    {ticket.resolution_notes}
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                    ) : ticket.resolution_notes ? (
-                                                        <div className="text-[9px] text-slate-500 max-w-[150px] truncate ml-auto italic" title={ticket.resolution_notes}>
-                                                            {ticket.resolution_notes}
-                                                        </div>
+                                                        <a 
+                                                            href={ticket.proof_media_url} 
+                                                            target="_blank" 
+                                                            rel="noopener noreferrer"
+                                                            className="transition-colors"
+                                                            style={{ color: 'var(--accent)' }}
+                                                        >
+                                                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                                                        </a>
                                                     ) : (
-                                                        <span className="text-[10px] text-slate-700 italic">-</span>
+                                                        <span className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>No Proof</span>
                                                     )}
                                                 </div>
                                             </td>
                                         </tr>
-                                    ))
+                                        );
+                                    })
                                 )}
                             </tbody>
                         </table>
+                    </div>
+
+                    {/* Mobile Card View */}
+                    <div className="md:hidden space-y-4">
+                        {isLoading ? (
+                            Array.from({ length: 5 }).map((_, i) => (
+                                <div key={i} className="p-4 rounded-lg" style={{ background: 'var(--bg-elevated)' }}>
+                                    <div className="h-4 rounded w-1/3 mb-3" style={{ background: 'var(--bg-surface)' }} />
+                                    <div className="h-6 rounded w-3/4 mb-2" style={{ background: 'var(--bg-surface)' }} />
+                                    <div className="h-4 rounded w-1/2" style={{ background: 'var(--bg-surface)' }} />
+                                </div>
+                            ))
+                        ) : tickets.length === 0 ? (
+                            <div className="p-8 text-center rounded-lg" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}>
+                                <p className="text-sm italic" style={{ color: 'var(--text-secondary)' }}>No tickets found in the system. Create one above to get started.</p>
+                            </div>
+                        ) : (
+                            tickets
+                            .filter(t => {
+                                const matchesStatus = filterStatus === 'all' || t.status === filterStatus;
+                                const search = searchQuery.toLowerCase();
+                                const engineerName = t.assigned_to ? getEngineerName(t.assigned_to).toLowerCase() : "";
+                                const matchesSearch = !search || 
+                                    t.atm_id.toLowerCase().includes(search) || 
+                                    t.bank_id.toLowerCase().includes(search) ||
+                                    t.title.toLowerCase().includes(search) ||
+                                    (t.ticket_no || '').toLowerCase().includes(search) ||
+                                    engineerName.includes(search);
+                                return matchesStatus && matchesSearch;
+                            })
+                            .map((ticket) => {
+                                const getBadgeStyle = (status: string) => {
+                                    const styles: Record<string, { bg: string; color: string; border: string }> = {
+                                        open: { bg: 'var(--accent-soft)', color: '#60a5fa', border: '#2563eb30' },
+                                        closed: { bg: 'var(--success-soft)', color: '#4ade80', border: '#16a34a30' },
+                                        re_raised: { bg: 'var(--error-soft)', color: '#f87171', border: '#dc262630' },
+                                        assigned: { bg: 'var(--accent-soft)', color: '#60a5fa', border: '#2563eb30' },
+                                        in_progress: { bg: 'var(--warning-soft)', color: '#fbbf24', border: '#d9770630' },
+                                    };
+                                    return styles[status] || { bg: 'var(--accent-soft)', color: '#60a5fa', border: '#2563eb30' };
+                                };
+                                const badgeStyle = getBadgeStyle(ticket.status || 'open');
+                                return (
+                                <div key={ticket.id} className="p-4 rounded-lg transition-colors" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}>
+                                    <div className="flex justify-between items-start mb-3">
+                                        <div>
+                                            <p className="text-xs font-semibold font-mono" style={{ color: 'var(--text-secondary)' }}>{ticket.ticket_no}</p>
+                                            <p className="text-[11px] mt-1 uppercase font-semibold" style={{ color: 'var(--text-muted)' }}>{new Date(ticket.created_at || "").toLocaleDateString()}</p>
+                                        </div>
+                                        <span className="text-[11px] font-semibold uppercase tracking-widest px-2.5 py-0.5 rounded-full" style={{ background: badgeStyle.bg, color: badgeStyle.color, border: `1px solid ${badgeStyle.border}` }}>
+                                            {ticket.status === 're_raised' ? 'ESCALATED' : ticket.status === 'in_progress' ? 'WORKING' : ticket.status}
+                                        </span>
+                                    </div>
+                                    <h4 className="text-sm font-semibold mb-1">{ticket.title}</h4>
+                                    <p className="text-xs line-clamp-2 mb-3" style={{ color: 'var(--text-secondary)' }}>{ticket.description}</p>
+                                    <div className="grid grid-cols-2 gap-2 mb-3">
+                                        <div className="rounded-lg px-3 py-2" style={{ background: 'var(--bg-elevated)' }}>
+                                            <p className="text-[11px] font-semibold uppercase tracking-widest mb-1" style={{ color: 'var(--text-secondary)' }}>ATM</p>
+                                            <p className="text-xs font-semibold">{ticket.atm_id}</p>
+                                        </div>
+                                        <div className="rounded-lg px-3 py-2" style={{ background: 'var(--bg-elevated)' }}>
+                                            <p className="text-[11px] font-semibold uppercase tracking-widest mb-1" style={{ color: 'var(--text-secondary)' }}>Bank</p>
+                                            <p className="text-xs font-semibold">{ticket.bank_id}</p>
+                                        </div>
+                                    </div>
+                                    {ticket.assigned_to && (
+                                        <p className="text-[11px] font-semibold uppercase tracking-widest mb-3 flex items-center gap-1.5" style={{ color: 'var(--accent)' }}>
+                                            <span className="w-1.5 h-1.5 rounded-full" style={{ background: 'var(--accent)' }}></span>
+                                            Eng: {getEngineerName(ticket.assigned_to)}
+                                        </p>
+                                    )}
+                                    <div className="flex gap-2">
+                                        {ticket.status !== 'closed' && (
+                                            <button 
+                                                onClick={() => handleCloseTicket(ticket)}
+                                                className="flex-1 text-[11px] font-semibold uppercase tracking-widest px-3 py-2 rounded-md transition-all"
+                                                style={{ background: 'transparent', border: '1px solid var(--border)', color: 'var(--text-secondary)', borderRadius: '6px' }}
+                                            >
+                                                Close ✓
+                                            </button>
+                                        )}
+                                        {ticket.status === 're_raised' && (
+                                            <button 
+                                                onClick={() => handleReleaseTicket(ticket)}
+                                                className="flex-1 text-[11px] font-semibold uppercase tracking-widest px-3 py-2 rounded-md transition-all"
+                                                style={{ background: 'var(--warning-soft)', border: '1px solid var(--warning)', color: 'var(--warning)', borderRadius: '6px' }}
+                                            >
+                                                Release ↩
+                                            </button>
+                                        )}
+                                        {ticket.proof_media_url && (
+                                            <a 
+                                                href={ticket.proof_media_url} 
+                                                target="_blank" 
+                                                rel="noopener noreferrer"
+                                                className="flex-1 text-[11px] font-semibold uppercase tracking-widest px-3 py-2 rounded-md transition-all text-center"
+                                                style={{ background: 'var(--accent-soft)', color: 'var(--accent)', borderRadius: '6px' }}
+                                            >
+                                                View Proof
+                                            </a>
+                                        )}
+                                    </div>
+                                </div>
+                                );
+                            })
+                        )}
                     </div>
                 </div>
             </main>

@@ -10,7 +10,7 @@ const requiredEnvVars = [
     'NEXT_PUBLIC_FIREBASE_PROJECT_ID',
     'FIREBASE_PRIVATE_KEY',
     'FIREBASE_CLIENT_EMAIL',
-    'RESEND_API_KEY',
+    
 ];
 
 if (typeof window === 'undefined') {

@@ -9,6 +9,8 @@ import { debounce } from "../../src/lib/utils/debounce";
 import { ErrorHandler } from "../../src/lib/utils/errorHandler";
 import { sanitizeFileName } from "../../src/lib/utils/fileName";
 import TicketCheckInButton from "../components/TicketCheckInButton";
+import MobileNav from "../../src/components/common/MobileNav";
+import Notifications from "../../src/components/common/Notifications";
 
 export default function EmployeeDashboard() {
     const { user, role, logout } = useAuth();
@@ -57,7 +59,7 @@ export default function EmployeeDashboard() {
         if (!user || role !== "employee") return;
 
         const channel = supabase
-            .channel('employee-db-changes')
+            .channel(`employee-dashboard-${user.uid}`)
             .on(
                 'postgres_changes',
                 { event: '*', schema: 'public', table: 'tickets' },
@@ -206,60 +208,61 @@ export default function EmployeeDashboard() {
 
 
     return (
-        <div className="min-h-screen bg-[#f8fafc] text-slate-900 p-6 md:p-10 px-4 sm:px-6 font-sans selection:bg-emerald-100">
+        <div className="min-h-screen p-8 font-sans page-enter" style={{ background: 'var(--bg-base)', color: 'var(--text-primary)' }}>
             {/* Top Navigation */}
-            <nav className="flex flex-col gap-6 sm:flex-row sm:items-center justify-between mb-10 bg-white p-6 rounded-[2.5rem] shadow-sm border border-slate-100">
+            <nav className="flex flex-col gap-4 sm:flex-row sm:items-center justify-between mb-10 p-6" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: '8px' }}>
                 <div className="flex items-center gap-4">
                     <img 
                         src="/images/prime_services_logo.png?v=1" 
                         alt="Prime Services ATM Services & Maintenance" 
-                        className="w-12 h-12 object-contain"
+                        className="w-10 h-10 sm:w-12 sm:h-12 object-contain"
                     />
                     <div>
-                        <h1 className="text-2xl font-black uppercase tracking-tighter italic text-emerald-600 flex items-center gap-3">
-                            Prime <span className="text-slate-900">Services CRM</span>
-                            <span className="not-italic text-[9px] bg-slate-900 text-white px-2 py-0.5 rounded-md tracking-widest font-black uppercase shadow-lg shadow-slate-900/20">Beta v1.0</span>
-                        </h1>
+                        <h1 className="text-lg font-semibold" style={{ letterSpacing: '-0.02em' }}>Prime Services CRM</h1>
                         <div className="flex items-center gap-2 mt-0.5">
-                            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                            <p className="text-[10px] text-slate-400 uppercase tracking-widest font-black">Live Operations Console</p>
+                            <span className="w-1.5 h-1.5 rounded-full" style={{ background: 'var(--success)' }}></span>
+                            <p className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: 'var(--text-secondary)' }}>Live Operations Console</p>
                         </div>
                     </div>
                 </div>
                 <div className="flex flex-col items-stretch gap-4 sm:flex-row sm:items-center">
                     <div className="text-right sm:text-left">
-                        <p className="text-xs font-black text-slate-900">{user?.email}</p>
-                        <p className="text-[9px] text-emerald-600 uppercase tracking-widest font-black leading-none mt-1 bg-emerald-50 px-2 py-1 rounded-full">Field Engineer</p>
+                        <p className="text-xs font-semibold">{user?.email}</p>
+                        <p className="text-[11px] font-semibold uppercase tracking-widest leading-none mt-1 px-2 py-0.5 rounded-full" style={{ color: 'var(--success)', background: 'var(--success-soft)' }}>Field Engineer</p>
                     </div>
-                    <button
-                        onClick={() => logout()}
-                        className="bg-slate-900 hover:bg-black text-white px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shadow-xl shadow-slate-900/10"
-                    >
-                        Sign Out
-                    </button>
+                    <div className="flex items-center gap-2">
+                        <Notifications />
+                        <button
+                            onClick={() => logout()}
+                            className="px-4 py-2 text-[11px] font-semibold uppercase tracking-widest transition-all"
+                            style={{ background: 'var(--accent)', color: 'white', borderRadius: '6px' }}
+                        >
+                            Sign Out
+                        </button>
+                    </div>
                 </div>
             </nav>
 
-            <main className="max-w-7xl mx-auto space-y-10">
+            <main className="max-w-7xl mx-auto space-y-8 sm:space-y-10">
                 {/* Stats */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-                    <div className="bg-white border border-slate-100 p-6 rounded-[2rem] shadow-sm">
-                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">My Tasks</p>
-                        <p className="text-3xl font-black text-slate-900 italic">{myTickets.length}</p>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-0" style={{ border: '1px solid var(--border)', borderRadius: '8px', overflow: 'hidden' }}>
+                    <div className="p-4 sm:p-6" style={{ borderRight: '1px solid var(--border-subtle)' }}>
+                        <p className="text-[11px] font-semibold uppercase tracking-widest mb-2" style={{ color: 'var(--text-secondary)' }}>My Tasks</p>
+                        <p className="text-2xl sm:text-3xl font-black text-slate-900 italic">{myTickets.length}</p>
                     </div>
-                    <div className="bg-white border border-slate-100 p-6 rounded-[2rem] shadow-sm">
-                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">Available</p>
-                        <p className="text-3xl font-black text-emerald-600 italic">{availableTickets.length}</p>
+                    <div className="bg-white border border-slate-100 p-4 sm:p-6 rounded-[1.5rem] sm:rounded-[2rem] shadow-sm">
+                        <p className="text-[8px] sm:text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">Available</p>
+                        <p className="text-2xl sm:text-3xl font-black text-emerald-600 italic">{availableTickets.length}</p>
                     </div>
-                    <div className="bg-white border border-slate-100 p-6 rounded-[2rem] shadow-sm">
-                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">Resolved</p>
-                        <p className="text-3xl font-black text-slate-900 italic">
+                    <div className="bg-white border border-slate-100 p-4 sm:p-6 rounded-[1.5rem] sm:rounded-[2rem] shadow-sm">
+                        <p className="text-[8px] sm:text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">Resolved</p>
+                        <p className="text-2xl sm:text-3xl font-black text-slate-900 italic">
                             {tickets.filter(t => t.assigned_to === user?.uid && t.status === 'closed').length}
                         </p>
                     </div>
-                    <div className="bg-white border border-slate-100 p-6 rounded-[2rem] shadow-sm">
-                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">In Progress</p>
-                        <p className="text-3xl font-black text-slate-900 italic">
+                    <div className="bg-white border border-slate-100 p-4 sm:p-6 rounded-[1.5rem] sm:rounded-[2rem] shadow-sm">
+                        <p className="text-[8px] sm:text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">In Progress</p>
+                        <p className="text-2xl sm:text-3xl font-black text-slate-900 italic">
                             {myTickets.filter(t => t.status === 'in_progress').length}
                         </p>
                     </div>
@@ -269,78 +272,81 @@ export default function EmployeeDashboard() {
                     {/* Active */}
                     <section className="space-y-6">
                         <div className="flex items-center justify-between">
-                            <h2 className="text-xl font-black italic uppercase tracking-tight">Active Assignments</h2>
-                            <span className="w-8 h-1 bg-emerald-600 rounded-full"></span>
+                            <h2 className="text-lg font-semibold" style={{ letterSpacing: '-0.02em' }}>Active Assignments</h2>
+                            <span className="w-8 h-1 rounded-full" style={{ background: 'var(--accent)' }}></span>
                         </div>
 
                         <div className="space-y-4">
                             {myTickets.length === 0 ? (
-                                <div className="bg-white rounded-[2rem] p-10 sm:p-16 text-center border-2 border-dashed border-slate-200">
-                                    <p className="text-slate-400 text-xs font-bold uppercase tracking-widest italic">No active deployments</p>
+                                <div className="p-10 sm:p-16 text-center rounded-lg" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}>
+                                    <p className="text-xs font-semibold uppercase tracking-widest italic" style={{ color: 'var(--text-secondary)' }}>No active deployments</p>
                                 </div>
                             ) : (
-                                myTickets.map(ticket => (
-                                    <div key={ticket.id} className="bg-white border border-slate-200/60 rounded-[2rem] p-6 md:p-8 shadow-sm hover:shadow-2xl hover:shadow-emerald-500/10 hover:-translate-y-1 transition-all duration-300 group relative overflow-hidden">
+                                myTickets.map(ticket => {
+                                    const getBadgeStyle = (status: string) => {
+                                        const styles: Record<string, { bg: string; color: string; border: string }> = {
+                                            in_progress: { bg: 'var(--warning-soft)', color: '#fbbf24', border: '#d9770630' },
+                                            re_raised: { bg: 'var(--error-soft)', color: '#f87171', border: '#dc262630' },
+                                            assigned: { bg: 'var(--accent-soft)', color: '#60a5fa', border: '#2563eb30' },
+                                        };
+                                        return styles[status] || { bg: 'var(--accent-soft)', color: '#60a5fa', border: '#2563eb30' };
+                                    };
+                                    const badgeStyle = getBadgeStyle(ticket.status || 'assigned');
+                                    return (
+                                    <div key={ticket.id} className="p-4 sm:p-6 md:p-8 rounded-lg transition-all group relative overflow-hidden" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}>
                                         {/* Status Indicator Bar */}
-                                        <div className={`absolute top-0 left-0 w-full h-1.5 transition-colors duration-300 ${ticket.status === 'in_progress' ? 'bg-gradient-to-r from-emerald-400 to-teal-500' : 'bg-gradient-to-r from-amber-400 to-orange-500'}`}></div>
+                                        <div className="absolute top-0 left-0 w-full h-1 transition-colors duration-300" style={{ background: 'var(--accent)' }}></div>
 
-                                        <div className="flex justify-between items-start mb-6 pt-2">
+                                        <div className="flex justify-between items-start mb-4 sm:mb-6 pt-2">
                                             <div className="space-y-1.5">
                                                 <div className="flex items-center gap-2">
-                                                    <p className="text-[10px] font-black text-slate-500 tracking-widest uppercase">{ticket.ticket_no}</p>
-                                                    <span className={`text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider ${ticket.status === 'in_progress' ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'}`}>
+                                                    <p className="text-[9px] sm:text-[10px] font-semibold tracking-widest uppercase" style={{ color: 'var(--text-secondary)' }}>{ticket.ticket_no}</p>
+                                                    <span className="text-[7px] sm:text-[8px] font-semibold px-1.5 sm:px-2 py-0.5 rounded-full uppercase tracking-wider" style={{ background: 'var(--bg-elevated)', color: 'var(--text-secondary)' }}>
                                                         {ticket.issue_type}
                                                     </span>
                                                 </div>
-                                                <h4 className="text-xl md:text-2xl font-black text-slate-900 leading-tight group-hover:text-emerald-700 transition-colors">{ticket.title}</h4>
+                                                <h4 className="text-lg sm:text-xl md:text-2xl font-semibold leading-tight">{ticket.title}</h4>
                                             </div>
-                                            {ticket.status === 'in_progress' ? (
-                                                <span className="text-[9px] font-black uppercase tracking-widest bg-emerald-600 text-white px-4 py-2 rounded-full flex items-center gap-2 shadow-lg shadow-emerald-600/20">
-                                                    <span className="w-2 h-2 rounded-full bg-white animate-pulse"></span>
-                                                    Working
-                                                </span>
-                                            ) : ticket.status === 're_raised' ? (
-                                                <span className="text-[9px] font-black uppercase tracking-widest bg-red-500 text-white px-4 py-2 rounded-full shadow-lg shadow-red-500/20">Escalated</span>
-                                            ) : (
-                                                <span className="text-[9px] font-black uppercase tracking-widest bg-amber-500 text-white px-4 py-2 rounded-full shadow-lg shadow-amber-500/20">Assigned</span>
-                                            )}
+                                            <span className="text-[8px] sm:text-[9px] font-semibold uppercase tracking-widest px-2.5 py-0.5 rounded-full" style={{ background: badgeStyle.bg, color: badgeStyle.color, border: `1px solid ${badgeStyle.border}` }}>
+                                                {ticket.status === 'in_progress' ? 'Working' : ticket.status === 're_raised' ? 'Escalated' : 'Assigned'}
+                                            </span>
                                         </div>
 
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-                                            <div className="flex items-center gap-4 bg-gradient-to-br from-slate-50 to-slate-100/50 p-4 rounded-2xl border border-slate-100 group-hover:border-emerald-100 transition-colors min-w-0">
-                                                <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center shadow-sm text-slate-400 group-hover:text-emerald-500 group-hover:scale-110 transition-all shrink-0">
-                                                    <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /></svg>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 mb-6 sm:mb-8">
+                                            <div className="flex items-center gap-3 sm:gap-4 bg-gradient-to-br from-slate-50 to-slate-100/50 p-3 sm:p-4 rounded-2xl border border-slate-100 group-hover:border-emerald-100 transition-colors min-w-0">
+                                                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white rounded-xl flex items-center justify-center shadow-sm text-slate-400 group-hover:text-emerald-500 group-hover:scale-110 transition-all shrink-0">
+                                                    <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /></svg>
                                                 </div>
                                                 <div className="min-w-0 flex-1">
-                                                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Atm Location</p>
+                                                    <p className="text-[8px] sm:text-[9px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Atm Location</p>
                                                     {ticket.atm_location?.startsWith('http') ? (
                                                         <a 
                                                             href={ticket.atm_location} 
                                                             target="_blank" 
                                                             rel="noopener noreferrer" 
-                                                            className="text-sm font-bold text-emerald-600 hover:text-emerald-500 hover:underline flex items-center gap-1 transition-colors truncate"
+                                                            className="text-xs sm:text-sm font-bold text-emerald-600 hover:text-emerald-500 hover:underline flex items-center gap-1 transition-colors truncate"
                                                             onClick={(e) => e.stopPropagation()}
                                                         >
                                                             View Map ↗
                                                         </a>
                                                     ) : (
-                                                        <p className="text-sm font-bold text-slate-800 truncate">{ticket.atm_location}</p>
+                                                        <p className="text-xs sm:text-sm font-bold text-slate-800 truncate">{ticket.atm_location}</p>
                                                     )}
                                                 </div>
                                             </div>
-                                            <div className="flex gap-4 min-w-0">
-                                                <div className="flex-1 bg-gradient-to-br from-slate-50 to-slate-100/50 p-4 rounded-2xl border border-slate-100 group-hover:border-emerald-100 transition-colors min-w-0">
-                                                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Bank</p>
-                                                    <p className="text-sm font-bold text-slate-800 truncate">{ticket.bank_id}</p>
+                                            <div className="flex gap-3 sm:gap-4 min-w-0">
+                                                <div className="flex-1 bg-gradient-to-br from-slate-50 to-slate-100/50 p-3 sm:p-4 rounded-2xl border border-slate-100 group-hover:border-emerald-100 transition-colors min-w-0">
+                                                    <p className="text-[8px] sm:text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Bank</p>
+                                                    <p className="text-xs sm:text-sm font-bold text-slate-800 truncate">{ticket.bank_id}</p>
                                                 </div>
-                                                <div className="flex-1 bg-gradient-to-br from-slate-50 to-slate-100/50 p-4 rounded-2xl border border-slate-100 group-hover:border-emerald-100 transition-colors min-w-0">
-                                                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Terminal</p>
-                                                    <p className="text-sm font-bold text-slate-800 truncate">{ticket.atm_id}</p>
+                                                <div className="flex-1 bg-gradient-to-br from-slate-50 to-slate-100/50 p-3 sm:p-4 rounded-2xl border border-slate-100 group-hover:border-emerald-100 transition-colors min-w-0">
+                                                    <p className="text-[8px] sm:text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Terminal</p>
+                                                    <p className="text-xs sm:text-sm font-bold text-slate-800 truncate">{ticket.atm_id}</p>
                                                 </div>
                                             </div>
                                         </div>
 
-                                        <div className="flex flex-col sm:flex-row gap-3">
+                                        <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
                                             {ticket.status === 'assigned' && (
                                                 <div className="flex-1">
                                                     <TicketCheckInButton 
@@ -351,13 +357,15 @@ export default function EmployeeDashboard() {
                                             )}
                                             <button
                                                 onClick={() => setSelectedTicket(ticket)}
-                                                className="flex-1 py-4 rounded-2xl text-[11px] font-black uppercase tracking-widest text-white bg-slate-900 hover:bg-emerald-600 transition-all shadow-lg shadow-slate-900/10 hover:shadow-emerald-600/20 hover:scale-[1.02] active:scale-95"
+                                                className="flex-1 py-3 sm:py-4 rounded-lg text-[10px] sm:text-[11px] font-semibold uppercase tracking-widest transition-all"
+                                                style={{ background: 'var(--accent)', color: 'white', borderRadius: '6px' }}
                                             >
                                                 View Details
                                             </button>
                                         </div>
                                     </div>
-                                ))
+                                    );
+                                })
                             )}
                         </div>
                     </section>
@@ -365,8 +373,8 @@ export default function EmployeeDashboard() {
                     {/* Open Pool */}
                     <section className="space-y-6">
                         <div className="flex items-center justify-between">
-                            <h2 className="text-xl font-black italic uppercase tracking-tight">Open Deployment Pool</h2>
-                            <span className="w-8 h-1 bg-amber-500 rounded-full"></span>
+                            <h2 className="text-lg font-semibold" style={{ letterSpacing: '-0.02em' }}>Open Deployment Pool</h2>
+                            <span className="w-8 h-1 rounded-full" style={{ background: 'var(--warning)' }}></span>
                         </div>
 
                         <div className="space-y-4">
@@ -376,67 +384,67 @@ export default function EmployeeDashboard() {
                                 </div>
                             ) : (
                                 availableTickets.map(ticket => (
-                                    <div key={ticket.id} className="bg-white border border-slate-200/60 rounded-[2rem] p-6 md:p-8 shadow-sm hover:shadow-2xl hover:shadow-emerald-500/10 hover:-translate-y-1 transition-all duration-300 group relative overflow-hidden">
+                                    <div key={ticket.id} className="bg-white border border-slate-200/60 rounded-[1.5rem] sm:rounded-[2rem] p-4 sm:p-6 md:p-8 shadow-sm hover:shadow-2xl hover:shadow-emerald-500/10 hover:-translate-y-1 transition-all duration-300 group relative overflow-hidden">
                                         {/* Status Indicator Bar */}
                                         <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-blue-400 to-indigo-500"></div>
 
-                                        <div className="flex justify-between items-start mb-6 pt-2">
+                                        <div className="flex justify-between items-start mb-4 sm:mb-6 pt-2">
                                             <div className="space-y-1.5">
                                                 <div className="flex items-center gap-2">
-                                                    <p className="text-[10px] font-black text-slate-500 tracking-widest uppercase">{ticket.ticket_no}</p>
-                                                    <span className="text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider bg-blue-50 text-blue-600">
+                                                    <p className="text-[9px] sm:text-[10px] font-black text-slate-500 tracking-widest uppercase">{ticket.ticket_no}</p>
+                                                    <span className="text-[7px] sm:text-[8px] font-black px-1.5 sm:px-2 py-0.5 rounded-full uppercase tracking-wider bg-blue-50 text-blue-600">
                                                         {ticket.issue_type}
                                                     </span>
                                                 </div>
-                                                <h4 className="text-xl md:text-2xl font-black text-slate-900 leading-tight group-hover:text-emerald-700 transition-colors">{ticket.title}</h4>
+                                                <h4 className="text-lg sm:text-xl md:text-2xl font-black text-slate-900 leading-tight group-hover:text-emerald-700 transition-colors">{ticket.title}</h4>
                                             </div>
-                                            <span className="text-[9px] font-black uppercase tracking-widest bg-blue-500 text-white px-4 py-2 rounded-full shadow-lg shadow-blue-500/20">Available</span>
+                                            <span className="text-[8px] sm:text-[9px] font-black uppercase tracking-widest bg-blue-500 text-white px-3 sm:px-4 py-1.5 sm:py-2 rounded-full shadow-lg shadow-blue-500/20">Available</span>
                                         </div>
 
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-                                            <div className="flex items-center gap-4 bg-gradient-to-br from-slate-50 to-slate-100/50 p-4 rounded-2xl border border-slate-100 group-hover:border-emerald-100 transition-colors min-w-0">
-                                                <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center shadow-sm text-slate-400 group-hover:text-emerald-500 group-hover:scale-110 transition-all shrink-0">
-                                                    <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /></svg>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 mb-6 sm:mb-8">
+                                            <div className="flex items-center gap-3 sm:gap-4 bg-gradient-to-br from-slate-50 to-slate-100/50 p-3 sm:p-4 rounded-2xl border border-slate-100 group-hover:border-emerald-100 transition-colors min-w-0">
+                                                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white rounded-xl flex items-center justify-center shadow-sm text-slate-400 group-hover:text-emerald-500 group-hover:scale-110 transition-all shrink-0">
+                                                    <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /></svg>
                                                 </div>
                                                 <div className="min-w-0 flex-1">
-                                                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Atm Location</p>
+                                                    <p className="text-[8px] sm:text-[9px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Atm Location</p>
                                                     {ticket.atm_location?.startsWith('http') ? (
                                                         <a 
                                                             href={ticket.atm_location} 
                                                             target="_blank" 
                                                             rel="noopener noreferrer" 
-                                                            className="text-sm font-bold text-emerald-600 hover:text-emerald-500 hover:underline flex items-center gap-1 transition-colors truncate"
+                                                            className="text-xs sm:text-sm font-bold text-emerald-600 hover:text-emerald-500 hover:underline flex items-center gap-1 transition-colors truncate"
                                                             onClick={(e) => e.stopPropagation()}
                                                         >
                                                             View Map ↗
                                                         </a>
                                                     ) : (
-                                                        <p className="text-sm font-bold text-slate-800 truncate">{ticket.atm_location}</p>
+                                                        <p className="text-xs sm:text-sm font-bold text-slate-800 truncate">{ticket.atm_location}</p>
                                                     )}
                                                 </div>
                                             </div>
-                                            <div className="flex gap-4 min-w-0">
-                                                <div className="flex-1 bg-gradient-to-br from-slate-50 to-slate-100/50 p-4 rounded-2xl border border-slate-100 group-hover:border-emerald-100 transition-colors min-w-0">
-                                                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Bank</p>
-                                                    <p className="text-sm font-bold text-slate-800 truncate">{ticket.bank_id}</p>
+                                            <div className="flex gap-3 sm:gap-4 min-w-0">
+                                                <div className="flex-1 bg-gradient-to-br from-slate-50 to-slate-100/50 p-3 sm:p-4 rounded-2xl border border-slate-100 group-hover:border-emerald-100 transition-colors min-w-0">
+                                                    <p className="text-[8px] sm:text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Bank</p>
+                                                    <p className="text-xs sm:text-sm font-bold text-slate-800 truncate">{ticket.bank_id}</p>
                                                 </div>
-                                                <div className="flex-1 bg-gradient-to-br from-slate-50 to-slate-100/50 p-4 rounded-2xl border border-slate-100 group-hover:border-emerald-100 transition-colors min-w-0">
-                                                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Terminal</p>
-                                                    <p className="text-sm font-bold text-slate-800 truncate">{ticket.atm_id}</p>
+                                                <div className="flex-1 bg-gradient-to-br from-slate-50 to-slate-100/50 p-3 sm:p-4 rounded-2xl border border-slate-100 group-hover:border-emerald-100 transition-colors min-w-0">
+                                                    <p className="text-[8px] sm:text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Terminal</p>
+                                                    <p className="text-xs sm:text-sm font-bold text-slate-800 truncate">{ticket.atm_id}</p>
                                                 </div>
                                             </div>
                                         </div>
 
-                                        <div className="flex flex-col sm:flex-row gap-3">
+                                        <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
                                             <button
                                                 onClick={() => handleAccept(ticket)}
-                                                className="flex-1 py-4 rounded-2xl text-[11px] font-black uppercase tracking-widest text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 transition-all hover:scale-[1.02] active:scale-95"
+                                                className="flex-1 py-3 sm:py-4 rounded-2xl text-[10px] sm:text-[11px] font-black uppercase tracking-widest text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 transition-all hover:scale-[1.02] active:scale-95"
                                             >
                                                 ✓ Claim
                                             </button>
                                             <button 
                                                 onClick={() => setSelectedTicket(ticket)}
-                                                className="flex-1 py-4 rounded-2xl text-[11px] font-black uppercase tracking-widest text-white bg-slate-900 hover:bg-emerald-600 transition-all shadow-lg shadow-slate-900/10 hover:shadow-emerald-600/20 hover:scale-[1.02] active:scale-95"
+                                                className="flex-1 py-3 sm:py-4 rounded-2xl text-[10px] sm:text-[11px] font-black uppercase tracking-widest text-white bg-slate-900 hover:bg-emerald-600 transition-all shadow-lg shadow-slate-900/10 hover:shadow-emerald-600/20 hover:scale-[1.02] active:scale-95"
                                             >
                                                 View Details
                                             </button>
@@ -463,36 +471,36 @@ export default function EmployeeDashboard() {
                             <table className="w-full min-w-[720px] text-left border-collapse">
                                 <thead>
                                     <tr className="bg-slate-50/50 border-b border-slate-100">
-                                        <th className="px-4 py-3 sm:px-8 sm:py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Ticket #</th>
-                                        <th className="px-4 py-3 sm:px-8 sm:py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Issue</th>
-                                        <th className="px-4 py-3 sm:px-8 sm:py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Location</th>
-                                        <th className="px-4 py-3 sm:px-8 sm:py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Status</th>
-                                        <th className="px-4 py-3 sm:px-8 sm:py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Completed</th>
-                                        <th className="px-4 py-3 sm:px-8 sm:py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Actions</th>
+                                        <th className="px-3 sm:px-4 py-2 sm:py-3 text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-slate-400">Ticket #</th>
+                                        <th className="px-3 sm:px-4 py-2 sm:py-3 text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-slate-400">Issue</th>
+                                        <th className="px-3 sm:px-4 py-2 sm:py-3 text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-slate-400">Location</th>
+                                        <th className="px-3 sm:px-4 py-2 sm:py-3 text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-slate-400">Status</th>
+                                        <th className="px-3 sm:px-4 py-2 sm:py-3 text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-slate-400">Completed</th>
+                                        <th className="px-3 sm:px-4 py-2 sm:py-3 text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-slate-400">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-50">
                                     {resolvedTickets.length === 0 ? (
                                         <tr>
-                                            <td colSpan={6} className="px-4 py-16 sm:px-8 sm:py-20 text-center">
-                                                <p className="text-slate-400 text-xs font-bold uppercase tracking-widest italic">No deployments completed yet</p>
+                                            <td colSpan={6} className="px-4 py-12 sm:py-16 text-center">
+                                                <p className="text-slate-400 text-[10px] sm:text-xs font-bold uppercase tracking-widest italic">No deployments completed yet</p>
                                             </td>
                                         </tr>
                                     ) : (
                                         resolvedTickets.map(ticket => (
                                             <tr key={ticket.id} className="group hover:bg-slate-50/30 transition-colors">
-                                                <td className="px-4 py-3 sm:px-8 sm:py-5">
-                                                    <span className="text-xs font-black text-slate-900 font-mono">{ticket.ticket_no}</span>
+                                                <td className="px-3 sm:px-4 py-2 sm:py-3">
+                                                    <span className="text-[10px] sm:text-xs font-black text-slate-900 font-mono">{ticket.ticket_no}</span>
                                                 </td>
-                                                <td className="px-4 py-3 sm:px-8 sm:py-5">
+                                                <td className="px-3 sm:px-4 py-2 sm:py-3">
                                                     <div className="space-y-1">
-                                                        <p className="text-sm font-bold text-slate-800">{ticket.title}</p>
-                                                        <span className="text-[9px] font-black px-2 py-0.5 bg-emerald-50 text-emerald-600 rounded uppercase">{ticket.issue_type}</span>
+                                                        <p className="text-xs sm:text-sm font-bold text-slate-800">{ticket.title}</p>
+                                                        <span className="text-[8px] sm:text-[9px] font-black px-1.5 sm:px-2 py-0.5 bg-emerald-50 text-emerald-600 rounded uppercase">{ticket.issue_type}</span>
                                                     </div>
                                                 </td>
-                                                <td className="px-4 py-3 sm:px-8 sm:py-5 max-w-[200px]">
-                                                    <div className="flex items-center gap-2 text-xs font-semibold text-slate-500 min-w-0">
-                                                        <svg className="w-3 h-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /></svg>
+                                                <td className="px-3 sm:px-4 py-2 sm:py-3 max-w-[150px] sm:max-w-[200px]">
+                                                    <div className="flex items-center gap-2 text-[10px] sm:text-xs font-semibold text-slate-500 min-w-0">
+                                                        <svg className="w-2.5 h-2.5 sm:w-3 sm:h-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /></svg>
                                                         {ticket.atm_location?.startsWith('http') ? (
                                                             <a 
                                                                 href={ticket.atm_location} 
@@ -507,19 +515,19 @@ export default function EmployeeDashboard() {
                                                         )}
                                                     </div>
                                                 </td>
-                                                <td className="px-4 py-3 sm:px-8 sm:py-5">
-                                                    <span className="text-[9px] font-black uppercase tracking-widest bg-emerald-600 text-white px-3 py-1.5 rounded-full shadow-lg shadow-emerald-600/10">Resolved</span>
+                                                <td className="px-3 sm:px-4 py-2 sm:py-3">
+                                                    <span className="text-[8px] sm:text-[9px] font-black uppercase tracking-widest bg-emerald-600 text-white px-2 sm:px-3 py-1 sm:py-1.5 rounded-full shadow-lg shadow-emerald-600/10">Resolved</span>
                                                 </td>
-                                                <td className="px-4 py-3 sm:px-8 sm:py-5">
-                                                    <p className="text-xs font-bold text-slate-400">{new Date(ticket.updated_at || ticket.created_at || '').toLocaleDateString()}</p>
+                                                <td className="px-3 sm:px-4 py-2 sm:py-3">
+                                                    <p className="text-[10px] sm:text-xs font-bold text-slate-400">{new Date(ticket.updated_at || ticket.created_at || '').toLocaleDateString()}</p>
                                                 </td>
-                                                <td className="px-4 py-3 sm:px-8 sm:py-5">
+                                                <td className="px-3 sm:px-4 py-2 sm:py-3">
                                                     <button
                                                         onClick={() => setSelectedTicket(ticket)}
                                                         className="p-2 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-all"
                                                         title="View Evidence"
                                                     >
-                                                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                                                        <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
                                                     </button>
                                                 </td>
                                             </tr>

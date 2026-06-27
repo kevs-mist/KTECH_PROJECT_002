@@ -9,7 +9,7 @@
  */
 
 import { describe, it, expect, beforeAll } from 'vitest';
-import { createAdminClient } from '../../utils/supabase/admin';
+import { createAdminClient } from '../../extra/supabase/admin';
 
 describe('Supabase Schema Relationships', () => {
   const supabase = createAdminClient();

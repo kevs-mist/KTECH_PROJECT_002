@@ -1,20 +1,17 @@
 import { NextResponse } from "next/server";
 import { adminAuth } from "../../../../utils/firebase/admin";
 import { createAdminClient } from "../../../../utils/supabase/admin";
+import { checkRateLimit as checkRateLimitImpl, rateLimitResponse as rateLimitResponseImpl } from "./rateLimit";
 
-type LimitEntry = {
-    count: number;
-    resetAt: number;
-};
-
-type RateLimitOptions = {
+export type RateLimitOptions = {
     key: string;
     limit: number;
     windowMs: number;
 };
 
-const MAX_RATE_LIMIT_KEYS = 5000;
-const rateLimitStore = new Map<string, LimitEntry>();
+// Re-export rate limiting functions
+export const checkRateLimit = checkRateLimitImpl;
+export const rateLimitResponse = rateLimitResponseImpl;
 
 export type VerifiedUser = {
     uid: string;
@@ -64,45 +61,6 @@ export function statusFromError(message: string): number {
 export function jsonError(error: unknown, fallback = "Request failed") {
     const message = errorMessage(error, fallback);
     return NextResponse.json({ error: message }, { status: statusFromError(message) });
-}
-
-export function checkRateLimit({ key, limit, windowMs }: RateLimitOptions) {
-    const now = Date.now();
-
-    for (const [entryKey, entry] of rateLimitStore) {
-        if (entry.resetAt <= now) rateLimitStore.delete(entryKey);
-    }
-
-    if (rateLimitStore.size >= MAX_RATE_LIMIT_KEYS) {
-        const oldestKey = rateLimitStore.keys().next().value;
-        if (oldestKey) rateLimitStore.delete(oldestKey);
-    }
-
-    const entry = rateLimitStore.get(key);
-    if (!entry || entry.resetAt <= now) {
-        rateLimitStore.set(key, { count: 1, resetAt: now + windowMs });
-        return { success: true, remaining: limit - 1, resetAt: now + windowMs };
-    }
-
-    if (entry.count >= limit) {
-        return { success: false, remaining: 0, resetAt: entry.resetAt };
-    }
-
-    entry.count += 1;
-    return { success: true, remaining: limit - entry.count, resetAt: entry.resetAt };
-}
-
-export function rateLimitResponse(resetAt: number) {
-    const retryAfter = Math.max(1, Math.ceil((resetAt - Date.now()) / 1000));
-    return NextResponse.json(
-        { error: "Too many requests. Please try again shortly." },
-        {
-            status: 429,
-            headers: {
-                "Retry-After": String(retryAfter),
-            },
-        }
-    );
 }
 
 export function assertSameOrigin(request: Request) {

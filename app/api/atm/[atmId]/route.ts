@@ -8,6 +8,8 @@ import {
     requireVerifiedUser,
 } from "../../../src/lib/server/apiSecurity";
 
+ export const dynamic = 'force-dynamic';
+
 export async function GET(request: Request, context: { params: Promise<{ atmId: string }> }) {
   try {
     const limit = checkRateLimit({

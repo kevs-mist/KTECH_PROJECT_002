@@ -82,31 +82,70 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return () => clearInterval(interval);
     }, [user, loading]);
 
-    // Handle Employee Online Status
+    // Handle Employee Online Status with Heartbeat
     useEffect(() => {
         if (!loading && user && role === "employee") {
-            // Set online
+            let heartbeatInterval: NodeJS.Timeout;
+            let isPageVisible = true;
+
+            // Set online immediately
             employeeService.setOnlineStatus(true);
+
+            // Heartbeat to keep status online (every 60 seconds)
+            const startHeartbeat = () => {
+                heartbeatInterval = setInterval(() => {
+                    if (isPageVisible) {
+                        employeeService.setOnlineStatus(true);
+                    }
+                }, 60000);
+            };
+
+            // Page visibility detection
+            const handleVisibilityChange = () => {
+                isPageVisible = !document.hidden;
+                if (isPageVisible) {
+                    employeeService.setOnlineStatus(true);
+                    startHeartbeat();
+                } else {
+                    clearInterval(heartbeatInterval);
+                    employeeService.setOnlineStatus(false);
+                }
+            };
 
             // Handle tab close (best effort)
             const handleUnload = () => {
                 employeeService.setOnlineStatus(false);
             };
+
+            // Start heartbeat
+            startHeartbeat();
+
+            // Add event listeners
+            document.addEventListener('visibilitychange', handleVisibilityChange);
             window.addEventListener("beforeunload", handleUnload);
             
             return () => {
+                clearInterval(heartbeatInterval);
+                document.removeEventListener('visibilitychange', handleVisibilityChange);
                 window.removeEventListener("beforeunload", handleUnload);
-                // Also set offline when role/user changes or component unmounts
+                // Set offline when component unmounts
                 employeeService.setOnlineStatus(false);
             };
         }
     }, [user, role, loading]);
 
     const logout = async () => {
+        // Set offline before signing out
         if (role === "employee") {
-            await employeeService.setOnlineStatus(false);
+            try {
+                await employeeService.setOnlineStatus(false);
+            } catch (err) {
+                console.error("Failed to set offline during logout:", err);
+            }
         }
         await signOut(auth);
+        // Force reload to clear any cached state
+        window.location.href = '/login';
     };
 
     return (

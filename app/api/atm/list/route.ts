@@ -16,8 +16,8 @@ export async function GET(request: Request) {
         // 2. Safely capture the IP, falling back to a dummy string if empty during build
         const ip = getClientIp(request) || "127.0.0.1";
 
-        // 3. Make sure to await checkRateLimit if it contacts an external store (like Redis)
-        const limit = await checkRateLimit({
+        // 3. Check rate limit
+        const limit = checkRateLimit({
             key: `atm:list:${ip}`,
             limit: 120,
             windowMs: 60 * 1000,
