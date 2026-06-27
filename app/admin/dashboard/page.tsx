@@ -5,6 +5,7 @@ import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "../../src/lib/AuthContext";
 import CreateTicketModal from "../../src/components/Admin/CreateTicketModal";
+import Notifications from "../../src/components/common/Notifications";
 import DataImportModal from "../../src/components/Admin/DataImportModal";
 import { ticketService, Ticket } from "../../src/lib/services/ticketService";
 import { employeeService, EmployeeProfile } from "../../src/lib/services/employeeService";
@@ -510,6 +511,7 @@ export default function AdminDashboard() {
 
                 {/* Operations Header */}
                 <div className="mt-12 flex flex-col gap-4 md:flex-row md:items-end justify-between">
+                    <Notifications />
                     <div>
                         <h3 className="text-xl font-semibold" style={{ letterSpacing: '-0.02em' }}>Operational Controls</h3>
                         <p className="text-[11px] font-semibold uppercase tracking-widest mt-1" style={{ color: 'var(--text-secondary)' }}>Live Ticket Management & Deployment</p>
@@ -840,3 +842,4 @@ export default function AdminDashboard() {
         </div>
     );
 }
+

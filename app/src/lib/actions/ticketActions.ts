@@ -115,6 +115,38 @@ export async function createTicketAction(idToken: string, ticket: Ticket) {
         }
     }
 
+    // If the UI did not provide an assignee, try to auto-assign from ATM master data.
+    // This keeps the ticket routed to the engineer already mapped to the ATM.
+    let inferredAssignee: string | undefined = validatedData.assigned_to;
+    if (!inferredAssignee && (validatedData.atm_location_id || validatedData.atm_id)) {
+        const atmQuery = validatedData.atm_location_id
+            ? supabase
+                  .from("atm_locations")
+                  .select("engineer_email")
+                  .eq("id", validatedData.atm_location_id)
+                  .maybeSingle()
+            : supabase
+                  .from("atm_locations")
+                  .select("engineer_email")
+                  .eq("atm_id", validatedData.atm_id)
+                  .maybeSingle();
+
+        const { data: atmRecord } = await atmQuery;
+
+        if (atmRecord?.engineer_email) {
+            const { data: mappedEngineer } = await supabase
+                .from("users")
+                .select("firebase_uid")
+                .eq("email", atmRecord.engineer_email)
+                .eq("role", "employee")
+                .maybeSingle();
+
+            if (mappedEngineer?.firebase_uid) {
+                inferredAssignee = mappedEngineer.firebase_uid;
+            }
+        }
+    }
+
     // If admin pre-assigns, start in 'assigned' status
     // Sanitize user inputs to prevent XSS
     const sanitizedData = {
@@ -126,6 +158,7 @@ export async function createTicketAction(idToken: string, ticket: Ticket) {
         description: sanitizeText(validatedData.description),
         atm_location: sanitizeText(validatedData.atm_location),
         bank_location: sanitizeText(validatedData.bank_location),
+        assigned_to: inferredAssignee,
     };
 
     const initialStatus = sanitizedData.assigned_to ? "assigned" : "open";
@@ -168,6 +201,16 @@ export async function createTicketAction(idToken: string, ticket: Ticket) {
 
     // Create in-app notification
     try {
+        if (uid) {
+            await createNotificationAction(
+                uid,
+                "ticket_updated",
+                "Ticket Created",
+                `Ticket "${validatedData.title}" was created successfully.${initialStatus === "assigned" ? " It has been auto-assigned." : " It is in the open pool."}`,
+                data.id
+            );
+        }
+
         if (initialStatus === "open") {
             // Notify all online employees about new ticket in open pool
             await notifyOnlineEmployeesAction(
@@ -546,3 +589,4 @@ export async function checkInAction(idToken: string, ticketId: string, currentVe
     
     return { success: true, checkIn, ticket: ticket || null };
 }
+

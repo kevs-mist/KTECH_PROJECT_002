@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { notificationService, Notification as NotificationType } from "../../lib/services/notificationService";
 import { supabase } from "../../lib/supabase";
 import { useAuth } from "../../lib/AuthContext";
@@ -12,59 +12,42 @@ export default function Notifications() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [showPermissionPrompt, setShowPermissionPrompt] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
-
-  // Detect mobile screen size
-  useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
-
-  // Play a pleasant notification chime sound
-  const playNotificationSound = () => {
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const getNotificationAudio = () => {
     try {
-      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-      
-      // First tone (higher pitch)
-      const osc1 = audioContext.createOscillator();
-      const gain1 = audioContext.createGain();
-      osc1.connect(gain1);
-      gain1.connect(audioContext.destination);
-      osc1.frequency.value = 587.33; // D5
-      osc1.type = 'sine';
-      gain1.gain.setValueAtTime(0.15, audioContext.currentTime);
-      gain1.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
-      osc1.start(audioContext.currentTime);
-      osc1.stop(audioContext.currentTime + 0.3);
+      if (!audioRef.current) {
+        audioRef.current = new Audio('/mixkit-correct-answer-tone-2870.wav');
+        audioRef.current.preload = 'auto';
+      }
+      return audioRef.current;
+    } catch (error) {
+      console.log("Could not create notification audio:", error);
+      return null;
+    }
+  };
 
-      // Second tone (even higher, delayed slightly for chime effect)
-      const osc2 = audioContext.createOscillator();
-      const gain2 = audioContext.createGain();
-      osc2.connect(gain2);
-      gain2.connect(audioContext.destination);
-      osc2.frequency.value = 880; // A5
-      osc2.type = 'sine';
-      gain2.gain.setValueAtTime(0, audioContext.currentTime + 0.15);
-      gain2.gain.linearRampToValueAtTime(0.12, audioContext.currentTime + 0.2);
-      gain2.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
-      osc2.start(audioContext.currentTime + 0.15);
-      osc2.stop(audioContext.currentTime + 0.5);
+  const unlockAudio = async () => {
+    const audio = getNotificationAudio();
+    if (!audio) return;
 
-      // Third tone (highest, for that satisfying ding)
-      const osc3 = audioContext.createOscillator();
-      const gain3 = audioContext.createGain();
-      osc3.connect(gain3);
-      gain3.connect(audioContext.destination);
-      osc3.frequency.value = 1174.66; // D6
-      osc3.type = 'sine';
-      gain3.gain.setValueAtTime(0, audioContext.currentTime + 0.3);
-      gain3.gain.linearRampToValueAtTime(0.1, audioContext.currentTime + 0.35);
-      gain3.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.8);
-      osc3.start(audioContext.currentTime + 0.3);
-      osc3.stop(audioContext.currentTime + 0.8);
+    try {
+      audio.volume = 0;
+      await audio.play();
+      audio.pause();
+      audio.currentTime = 0;
+      audio.volume = 1;
+    } catch (error) {
+      console.log("Could not unlock notification sound:", error);
+    }
+  };
+
+  const playNotificationSound = async () => {
+    try {
+      const audio = getNotificationAudio();
+      if (!audio) return;
+
+      audio.currentTime = 0;
+      await audio.play();
     } catch (error) {
       console.log("Could not play notification sound:", error);
     }
@@ -80,7 +63,8 @@ export default function Notifications() {
     const permission = await Notification.requestPermission();
     if (permission === "granted") {
       setShowPermissionPrompt(false);
-      playNotificationSound();
+      await unlockAudio();
+      await playNotificationSound();
       // Show a test notification
       new Notification("Notifications Enabled", {
         body: "You will now receive notifications for new tickets.",
@@ -140,9 +124,13 @@ export default function Notifications() {
           table: 'notifications',
           filter: `recipient_id=eq.${uid}`
         },
-        (payload) => {
+        async (payload) => {
           if (payload.eventType === 'INSERT') {
-            playNotificationSound();
+            const notificationType = (payload.new as { type?: string } | undefined)?.type || "";
+            if (notificationType.startsWith("ticket_")) {
+              void unlockAudio();
+              void playNotificationSound();
+            }
           }
           fetchNotifications();
         }
@@ -218,6 +206,7 @@ export default function Notifications() {
 
       {/* Notification Bell */}
       <button
+        onPointerDown={() => { void unlockAudio(); }}
         onClick={() => setIsOpen(!isOpen)}
         className="relative p-2 rounded-lg transition-colors"
         style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)' }}
@@ -363,3 +352,6 @@ export default function Notifications() {
     </div>
   );
 }
+
+
+
