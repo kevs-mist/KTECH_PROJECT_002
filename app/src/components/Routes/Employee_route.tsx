@@ -34,11 +34,12 @@ export default function EmployeeRoute({ children }: { children: React.ReactNode 
                 role="status"
                 aria-label="Loading"
                 aria-live="polite"
-                className="flex items-center justify-center min-h-screen bg-slate-50"
+                className="flex items-center justify-center min-h-screen"
+                style={{ background: 'var(--bg-base)' }}
             >
                 <div className="flex flex-col items-center gap-4">
-                    <div className="w-12 h-12 border-4 border-emerald-200 border-t-emerald-600 rounded-full animate-spin" aria-hidden="true"></div>
-                    <p className="text-slate-500 font-medium">Verifying Staff Status...</p>
+                    <div className="w-12 h-12 rounded-full animate-spin" style={{ border: '4px solid var(--border-subtle)', borderTopColor: 'var(--success)' }} aria-hidden="true"></div>
+                    <p className="font-medium" style={{ color: 'var(--text-secondary)' }}>Verifying Staff Status...</p>
                     <span className="sr-only">Verifying Staff Status, please wait...</span>
                 </div>
             </div>

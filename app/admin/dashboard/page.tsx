@@ -5,6 +5,7 @@ import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "../../src/lib/AuthContext";
 import CreateTicketModal from "../../src/components/Admin/CreateTicketModal";
+import DataImportModal from "../../src/components/Admin/DataImportModal";
 import { ticketService, Ticket } from "../../src/lib/services/ticketService";
 import { employeeService, EmployeeProfile } from "../../src/lib/services/employeeService";
 import { supabase } from "../../src/lib/supabase";
@@ -32,6 +33,7 @@ export default function AdminDashboard() {
     const { user, loading: authLoading, logout } = useAuth();
     const router = useRouter();
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isImportModalOpen, setIsImportModalOpen] = useState(false);
     const [stats, setStats] = useState({ total: 0, open: 0, closed: 0, escalated: 0 });
     const [tickets, setTickets] = useState<Ticket[]>([]);
     const [employees, setEmployees] = useState<EmployeeProfile[]>([]);
@@ -524,6 +526,16 @@ export default function AdminDashboard() {
                             Export Excel
                         </button>
                         <button 
+                            onClick={() => setIsImportModalOpen(true)}
+                            className="px-6 py-2.5 font-semibold text-xs uppercase tracking-widest transition-all flex items-center gap-2"
+                            style={{ background: 'transparent', border: '1px solid var(--border)', color: 'var(--text-secondary)', borderRadius: '6px' }}
+                        >
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                            </svg>
+                            Import Data
+                        </button>
+                        <button 
                             onClick={() => setIsModalOpen(true)}
                             className="px-6 py-2.5 font-semibold text-xs uppercase tracking-widest transition-all"
                             style={{ background: 'var(--accent)', color: 'white', borderRadius: '6px' }}
@@ -756,7 +768,9 @@ export default function AdminDashboard() {
                                         </span>
                                     </div>
                                     <h4 className="text-sm font-semibold mb-1">{ticket.title}</h4>
-                                    <p className="text-xs line-clamp-2 mb-3" style={{ color: 'var(--text-secondary)' }}>{ticket.description}</p>
+                                    <p className="text-xs line-clamp-2 mb-3" style={{ color: 'var(--text-secondary)' }}>
+                                        {ticket.description?.split(' ').slice(0, 6).join(' ')}{ticket.description?.split(' ').length > 6 ? '...' : ''}
+                                    </p>
                                     <div className="grid grid-cols-2 gap-2 mb-3">
                                         <div className="rounded-lg px-3 py-2" style={{ background: 'var(--bg-elevated)' }}>
                                             <p className="text-[11px] font-semibold uppercase tracking-widest mb-1" style={{ color: 'var(--text-secondary)' }}>ATM</p>
@@ -815,6 +829,12 @@ export default function AdminDashboard() {
             <CreateTicketModal 
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
+                onSuccess={fetchStats}
+            />
+
+            <DataImportModal
+                isOpen={isImportModalOpen}
+                onClose={() => setIsImportModalOpen(false)}
                 onSuccess={fetchStats}
             />
         </div>

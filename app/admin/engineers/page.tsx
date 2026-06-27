@@ -177,7 +177,7 @@ export default function EngineersPage() {
                     ) : (
                         employees.map((emp) => (
                             <div key={emp.firebase_uid} className="p-8 rounded-lg transition-all group relative overflow-hidden" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}>
-                                <div className="absolute top-0 right-0 w-1 h-full transition-colors" style={{ background: emp.is_online ? 'var(--success)' : 'var(--text-muted)' }}></div>
+                                <div className="absolute top-0 right-0 w-1 h-full transition-colors" style={{ background: emp.is_online ? 'var(--success)' : 'var(--text-tertiary)' }}></div>
                                 
                                 <div className="flex items-center gap-5 mb-8">
                                     <div className="w-16 h-16 rounded-lg flex items-center justify-center text-xl font-semibold relative" style={{ background: emp.is_online ? 'var(--success)' : 'var(--bg-elevated)', color: emp.is_online ? 'white' : 'var(--text-secondary)' }}>
@@ -190,8 +190,8 @@ export default function EngineersPage() {
                                         <h3 className="text-xl font-semibold leading-none mb-1">{emp.full_name || "New Engineer"}</h3>
                                         <p className="text-[11px] uppercase font-semibold tracking-widest" style={{ color: 'var(--text-secondary)' }}>{emp.employee_id}</p>
                                         <div className="flex items-center gap-2 mt-2">
-                                            <span className="w-2 h-2 rounded-full" style={{ background: emp.is_online ? 'var(--success)' : 'var(--text-muted)' }}></span>
-                                            <span className="text-[11px] uppercase font-semibold tracking-widest" style={{ color: emp.is_online ? 'var(--success)' : 'var(--text-muted)' }}>{emp.is_online ? 'Online' : 'Offline'}</span>
+                                            <span className="w-2 h-2 rounded-full" style={{ background: emp.is_online ? 'var(--success)' : 'var(--text-tertiary)' }}></span>
+                                            <span className="text-[11px] uppercase font-semibold tracking-widest" style={{ color: emp.is_online ? 'var(--success)' : 'var(--text-tertiary)' }}>{emp.is_online ? 'Online' : 'Offline'}</span>
                                         </div>
                                     </div>
                                 </div>

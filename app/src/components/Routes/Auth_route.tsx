@@ -26,9 +26,10 @@ export default function AuthRoute({ children }: { children: React.ReactNode }) {
                 role="status"
                 aria-label="Loading"
                 aria-live="polite"
-                className="flex items-center justify-center min-h-screen bg-slate-50"
+                className="flex items-center justify-center min-h-screen"
+                style={{ background: 'var(--bg-base)' }}
             >
-                <div className="w-8 h-8 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin" aria-hidden="true"></div>
+                <div className="w-8 h-8 rounded-full animate-spin" style={{ border: '4px solid var(--border-subtle)', borderTopColor: 'var(--accent)' }} aria-hidden="true"></div>
                 <span className="sr-only">Loading page content, please wait...</span>
             </div>
         );

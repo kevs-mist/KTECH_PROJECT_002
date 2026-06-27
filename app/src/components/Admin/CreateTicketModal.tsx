@@ -141,14 +141,14 @@ export default function CreateTicketModal({ isOpen, onClose, onSuccess }: Create
     };
 
     return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
-            <div className="bg-[#0f172a] border border-white/10 w-full max-w-lg rounded-[2rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300">
-                <div className="px-8 py-6 border-b border-white/5 flex justify-between items-center">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in duration-300" style={{ background: 'rgba(0, 0, 0, 0.6)' }}>
+            <div className="w-full max-w-lg rounded-[2rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}>
+                <div className="px-8 py-6 flex justify-between items-center" style={{ borderBottom: '1px solid var(--border-subtle)' }}>
                     <div>
-                        <h2 className="text-xl font-bold text-white">Create New Ticket</h2>
-                        <p className="text-xs text-slate-500 uppercase tracking-widest font-bold mt-1">Issue Registration</p>
+                        <h2 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>Create New Ticket</h2>
+                        <p className="text-xs uppercase tracking-widest font-bold mt-1" style={{ color: 'var(--text-tertiary)' }}>Issue Registration</p>
                     </div>
-                    <button onClick={onClose} className="text-slate-500 hover:text-white transition-colors">
+                    <button onClick={onClose} className="transition-colors" style={{ color: 'var(--text-tertiary)' }}>
                         <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
                         </svg>
@@ -157,14 +157,14 @@ export default function CreateTicketModal({ isOpen, onClose, onSuccess }: Create
 
                 <form onSubmit={handleSubmit} className="p-8 space-y-4 max-h-[70vh] overflow-y-auto custom-scrollbar">
                     {error && (
-                        <div className="p-4 bg-red-500/10 border border-red-500/20 text-red-500 text-xs rounded-xl">
+                        <div className="p-4 text-xs rounded-xl" style={{ background: 'var(--error-soft)', border: '1px solid var(--error)', color: 'var(--error)' }}>
                             {error}
                         </div>
                     )}
 
                     {/* Step 1: ATM Selection */}
                     <div className="space-y-1.5">
-                        <label className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest ml-1">Step 1 — Select ATM</label>
+                        <label className="text-[10px] font-bold uppercase tracking-widest ml-1" style={{ color: 'var(--accent)' }}>Step 1 — Select ATM</label>
                         <ATMSelector
                             onATMSelect={handleATMSelect}
                             onError={(msg) => setError(msg)}
@@ -173,32 +173,32 @@ export default function CreateTicketModal({ isOpen, onClose, onSuccess }: Create
 
                     {/* Auto-populated ATM info */}
                     {selectedATM && (
-                        <div className="p-4 bg-white/[0.03] border border-white/10 rounded-xl space-y-2">
+                        <div className="p-4 rounded-xl space-y-2" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)' }}>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                 <div>
-                                    <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Bank Name</p>
-                                    <p className="text-sm text-white font-medium mt-0.5">{selectedATM.bank_name}</p>
+                                    <p className="text-[9px] font-bold uppercase tracking-widest" style={{ color: 'var(--text-tertiary)' }}>Bank Name</p>
+                                    <p className="text-sm font-medium mt-0.5" style={{ color: 'var(--text-primary)' }}>{selectedATM.bank_name}</p>
                                 </div>
                                 <div>
-                                    <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Location</p>
-                                    <p className="text-sm text-white font-medium mt-0.5">{selectedATM.location}</p>
+                                    <p className="text-[9px] font-bold uppercase tracking-widest" style={{ color: 'var(--text-tertiary)' }}>Location</p>
+                                    <p className="text-sm font-medium mt-0.5" style={{ color: 'var(--text-primary)' }}>{selectedATM.location}</p>
                                 </div>
                             </div>
                             <div>
-                                <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Address</p>
-                                <p className="text-xs text-slate-300 mt-0.5">{selectedATM.address}</p>
+                                <p className="text-[9px] font-bold uppercase tracking-widest" style={{ color: 'var(--text-tertiary)' }}>Address</p>
+                                <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>{selectedATM.address}</p>
                             </div>
                         </div>
                     )}
 
                     {/* Auto-assigned Engineer */}
                     {autoAssignedEngineer && (
-                        <div className="p-4 bg-emerald-500/5 border border-emerald-500/20 rounded-xl space-y-1">
-                            <p className="text-[10px] font-bold text-emerald-400 uppercase tracking-widest">✓ Auto-Assigned Engineer</p>
-                            <p className="text-sm text-white font-bold">{autoAssignedEngineer.engineer_name}</p>
-                            <p className="text-xs text-slate-400">{autoAssignedEngineer.engineer_email}</p>
+                        <div className="p-4 rounded-xl space-y-1" style={{ background: 'var(--success-soft)', border: '1px solid var(--success)' }}>
+                            <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: 'var(--success)' }}>✓ Auto-Assigned Engineer</p>
+                            <p className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>{autoAssignedEngineer.engineer_name}</p>
+                            <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>{autoAssignedEngineer.engineer_email}</p>
                             {autoAssignedEngineer.distance_km && (
-                                <p className="text-[10px] text-slate-500">
+                                <p className="text-[10px]" style={{ color: 'var(--text-tertiary)' }}>
                                     {autoAssignedEngineer.distance_km} km away • {autoAssignedEngineer.method === 'distance_based' ? 'GPS-based' : 'Master data'}
                                 </p>
                             )}
@@ -209,24 +209,25 @@ export default function CreateTicketModal({ isOpen, onClose, onSuccess }: Create
                     {selectedATM && (
                         <>
                             <div className="pt-2">
-                                <label className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest ml-1">Step 2 — Ticket Details</label>
+                                <label className="text-[10px] font-bold uppercase tracking-widest ml-1" style={{ color: 'var(--accent)' }}>Step 2 — Ticket Details</label>
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className="space-y-1.5 md:col-span-2">
-                                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Ticket Title</label>
+                                    <label className="text-[10px] font-bold uppercase tracking-widest ml-1" style={{ color: 'var(--text-tertiary)' }}>Ticket Title</label>
                                     <input 
                                         required
                                         minLength={5}
                                         value={formData.title}
                                         onChange={(e) => setFormData({...formData, title: e.target.value})}
                                         placeholder="Brief Issue Summary"
-                                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all"
+                                        className="w-full rounded-xl px-4 py-3 text-sm focus:outline-none transition-all"
+                                        style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
                                     />
                                 </div>
 
                                 <div className="space-y-1.5 md:col-span-2">
-                                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Description</label>
+                                    <label className="text-[10px] font-bold uppercase tracking-widest ml-1" style={{ color: 'var(--text-tertiary)' }}>Description</label>
                                     <textarea 
                                         required
                                         minLength={10}
@@ -234,46 +235,49 @@ export default function CreateTicketModal({ isOpen, onClose, onSuccess }: Create
                                         value={formData.description}
                                         onChange={(e) => setFormData({...formData, description: e.target.value})}
                                         placeholder="Describe the issue in detail..."
-                                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all resize-none"
+                                        className="w-full rounded-xl px-4 py-3 text-sm focus:outline-none transition-all resize-none"
+                                        style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
                                     />
                                 </div>
 
                                 <div className="space-y-1.5">
-                                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Issue Type</label>
+                                    <label className="text-[10px] font-bold uppercase tracking-widest ml-1" style={{ color: 'var(--text-tertiary)' }}>Issue Type</label>
                                     <select 
                                         value={formData.issue_type}
                                         onChange={(e) => setFormData({...formData, issue_type: e.target.value})}
-                                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all appearance-none"
+                                        className="w-full rounded-xl px-4 py-3 text-sm focus:outline-none transition-all appearance-none"
+                                        style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
                                     >
-                                        <option className="bg-[#0f172a]" value="Hardware">Hardware</option>
-                                        <option className="bg-[#0f172a]" value="Software">Software</option>
-                                        <option className="bg-[#0f172a]" value="Network">Network</option>
-                                        <option className="bg-[#0f172a]" value="Power">Power</option>
-                                        <option className="bg-[#0f172a]" value="Card Reader">Card Reader</option>
+                                        <option value="Hardware">Hardware</option>
+                                        <option value="Software">Software</option>
+                                        <option value="Network">Network</option>
+                                        <option value="Power">Power</option>
+                                        <option value="Card Reader">Card Reader</option>
                                     </select>
                                 </div>
 
                                 <div className="space-y-1.5 md:col-span-2">
-                                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">
-                                        Override Engineer <span className="text-slate-600 normal-case font-normal">(optional — leave to use auto-assigned)</span>
+                                    <label className="text-[10px] font-bold uppercase tracking-widest ml-1" style={{ color: 'var(--text-tertiary)' }}>
+                                        Override Engineer <span className="normal-case font-normal" style={{ color: 'var(--text-tertiary)' }}>(optional — leave to use auto-assigned)</span>
                                     </label>
                                     <select
                                         value={formData.assigned_to}
                                         onChange={(e) => setFormData({...formData, assigned_to: e.target.value})}
-                                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all appearance-none"
+                                        className="w-full rounded-xl px-4 py-3 text-sm focus:outline-none transition-all appearance-none"
+                                        style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
                                         disabled={employeesLoading}
                                     >
                                         {employeesLoading ? (
-                                            <option className="bg-[#0f172a]" value="" disabled>Loading engineers list...</option>
+                                            <option value="" disabled>Loading engineers list...</option>
                                         ) : employeesError ? (
-                                            <option className="bg-[#0f172a]" value="" disabled>{employeesError}</option>
+                                            <option value="" disabled>{employeesError}</option>
                                         ) : (
                                             <>
-                                                <option className="bg-[#0f172a]" value="">— Open Pool (unassigned) —</option>
+                                                <option value="">— Open Pool (unassigned) —</option>
                                                 {employees
                                                     .filter(emp => emp.status === 'active')
                                                     .map(emp => (
-                                                        <option key={emp.firebase_uid} className="bg-[#0f172a]" value={emp.firebase_uid}>
+                                                        <option key={emp.firebase_uid} value={emp.firebase_uid}>
                                                             {emp.full_name || emp.email} ({emp.employee_id}) — {emp.active_tickets} active
                                                         </option>
                                                     ))}
@@ -289,14 +293,16 @@ export default function CreateTicketModal({ isOpen, onClose, onSuccess }: Create
                         <button 
                             type="button"
                             onClick={onClose}
-                            className="flex-1 px-6 py-3.5 rounded-xl text-xs font-bold text-slate-400 hover:text-white bg-white/5 hover:bg-white/10 transition-all"
+                            className="flex-1 px-6 py-3.5 rounded-xl text-xs font-bold transition-all"
+                            style={{ color: 'var(--text-tertiary)', background: 'var(--bg-elevated)' }}
                         >
                             Cancel
                         </button>
                         <button 
                             type="submit"
                             disabled={isLoading || !selectedATM}
-                            className="flex-[2] px-6 py-3.5 rounded-xl text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-500 shadow-lg shadow-indigo-500/20 transition-all disabled:opacity-50"
+                            className="flex-[2] px-6 py-3.5 rounded-xl text-xs font-bold transition-all disabled:opacity-50"
+                            style={{ color: 'white', background: 'var(--accent)' }}
                         >
                             {isLoading ? "Creating..." : "Confirm & Create Ticket"}
                         </button>

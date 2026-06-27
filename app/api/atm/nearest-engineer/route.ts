@@ -59,12 +59,25 @@ export async function POST(request: Request) {
     }
 
     if (!atm.latitude || !atm.longitude) {
+      // Try to find engineer by email to get their firebase_uid
+      let engineerId: string | undefined;
+      if (atm.engineer_email) {
+        const { data: engineerUser } = await supabase
+          .from("users")
+          .select("firebase_uid")
+          .eq("email", atm.engineer_email)
+          .eq("role", "employee")
+          .single();
+        engineerId = engineerUser?.firebase_uid;
+      }
+      
       return NextResponse.json({
         success: true,
         data: {
           engineer_name: atm.engineer_name,
           engineer_contact: atm.engineer_contact,
           engineer_email: atm.engineer_email,
+          engineer_id: engineerId,
           method: "master_data"
         }
       });
@@ -76,12 +89,25 @@ export async function POST(request: Request) {
       .eq("role", "employee");
 
     if (!users || users.length === 0) {
+      // Try to find engineer by email to get their firebase_uid
+      let engineerId: string | undefined;
+      if (atm.engineer_email) {
+        const { data: engineerUser } = await supabase
+          .from("users")
+          .select("firebase_uid")
+          .eq("email", atm.engineer_email)
+          .eq("role", "employee")
+          .single();
+        engineerId = engineerUser?.firebase_uid;
+      }
+      
       return NextResponse.json({
         success: true,
         data: {
           engineer_name: atm.engineer_name,
           engineer_contact: atm.engineer_contact,
           engineer_email: atm.engineer_email,
+          engineer_id: engineerId,
           method: "master_data"
         }
       });
@@ -128,12 +154,25 @@ export async function POST(request: Request) {
       });
     }
 
+    // Try to find engineer by email to get their firebase_uid
+    let engineerId: string | undefined;
+    if (atm.engineer_email) {
+      const { data: engineerUser } = await supabase
+        .from("users")
+        .select("firebase_uid")
+        .eq("email", atm.engineer_email)
+        .eq("role", "employee")
+        .single();
+      engineerId = engineerUser?.firebase_uid;
+    }
+    
     return NextResponse.json({
       success: true,
       data: {
         engineer_name: atm.engineer_name,
         engineer_contact: atm.engineer_contact,
         engineer_email: atm.engineer_email,
+        engineer_id: engineerId,
         method: "master_data"
       }
     });

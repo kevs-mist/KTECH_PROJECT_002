@@ -1,21 +1,74 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { notificationService, Notification } from "../../lib/services/notificationService";
+import { notificationService, Notification as NotificationType } from "../../lib/services/notificationService";
 import { supabase } from "../../lib/supabase";
 import { useAuth } from "../../lib/AuthContext";
 
 export default function Notifications() {
   const { user } = useAuth();
-  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [notifications, setNotifications] = useState<NotificationType[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [showPermissionPrompt, setShowPermissionPrompt] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Detect mobile screen size
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  // Request browser notification permission
+  const requestNotificationPermission = async () => {
+    if (!("Notification" in window)) {
+      console.log("This browser does not support desktop notification");
+      return;
+    }
+
+    const permission = await Notification.requestPermission();
+    if (permission === "granted") {
+      setShowPermissionPrompt(false);
+      // Show a test notification
+      new Notification("Notifications Enabled", {
+        body: "You will now receive notifications for new tickets.",
+        icon: "/favicon.ico"
+      });
+    }
+  };
+
+  // Check notification permission on mount
+  useEffect(() => {
+    if ("Notification" in window && Notification.permission === "default" && user) {
+      // Show prompt after a delay
+      const timer = setTimeout(() => {
+        setShowPermissionPrompt(true);
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [user]);
 
   const fetchNotifications = async () => {
     try {
       const data = await notificationService.getNotifications();
       setNotifications(data);
-      setUnreadCount(data.filter(n => !n.is_read).length);
+      setUnreadCount(data.filter((n: NotificationType) => !n.is_read).length);
+
+      // Show browser notification for new unread notifications
+      if (Notification.permission === "granted" && data.some((n: NotificationType) => !n.is_read)) {
+        const newNotifications = data.filter((n: NotificationType) => !n.is_read).slice(0, 3);
+        newNotifications.forEach((notif: NotificationType) => {
+          new Notification(notif.title, {
+            body: notif.message,
+            icon: "/favicon.ico",
+            tag: notif.id
+          });
+        });
+      }
     } catch (err) {
       console.error("Failed to fetch notifications:", err);
     }
@@ -88,6 +141,30 @@ export default function Notifications() {
 
   return (
     <div className="relative">
+      {/* Permission Prompt */}
+      {showPermissionPrompt && (
+        <div className="fixed bottom-4 right-4 z-50 p-4 rounded-lg shadow-xl max-w-sm" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}>
+          <p className="text-sm font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>Enable Notifications</p>
+          <p className="text-xs mb-3" style={{ color: 'var(--text-secondary)' }}>Get notified when new tickets are assigned to you or appear in the open pool.</p>
+          <div className="flex gap-2">
+            <button
+              onClick={requestNotificationPermission}
+              className="px-3 py-1.5 text-xs font-semibold rounded"
+              style={{ background: 'var(--accent)', color: 'white' }}
+            >
+              Enable
+            </button>
+            <button
+              onClick={() => setShowPermissionPrompt(false)}
+              className="px-3 py-1.5 text-xs font-semibold rounded"
+              style={{ background: 'var(--bg-elevated)', color: 'var(--text-secondary)' }}
+            >
+              Later
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Notification Bell */}
       <button
         onClick={() => setIsOpen(!isOpen)}
@@ -182,6 +259,55 @@ export default function Notifications() {
             </div>
           </div>
         </>
+      )}
+
+      {/* Floating Toasts - Mobile only */}
+      {isMobile && notifications.length > 0 && (
+        <div className="fixed top-4 left-4 right-4 z-50 space-y-2 max-h-[70vh] overflow-y-auto">
+          {notifications.slice(0, 5).map((notification) => (
+            <div
+              key={notification.id}
+              className="p-4 rounded-lg shadow-xl animate-in slide-in-from-top-2 duration-300"
+              style={{ 
+                background: notification.is_read ? 'var(--bg-elevated)' : 'var(--bg-surface)',
+                border: '1px solid var(--border)',
+                borderLeft: notification.is_read ? '1px solid var(--border)' : '3px solid var(--accent)'
+              }}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex-1">
+                  <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+                    {notification.title}
+                  </p>
+                  <p className="text-xs mt-1" style={{ color: 'var(--text-secondary)' }}>
+                    {notification.message}
+                  </p>
+                  <p className="text-[10px] mt-2" style={{ color: 'var(--text-tertiary)' }}>
+                    {formatTime(notification.created_at)}
+                  </p>
+                </div>
+                {!notification.is_read && (
+                  <button
+                    onClick={() => handleMarkAsRead(notification.id)}
+                    className="text-xs font-semibold px-2 py-1 rounded"
+                    style={{ color: 'var(--accent)' }}
+                  >
+                    ✓
+                  </button>
+                )}
+              </div>
+            </div>
+          ))}
+          {unreadCount > 0 && (
+            <button
+              onClick={handleMarkAllAsRead}
+              className="w-full p-3 rounded-lg text-xs font-semibold text-center"
+              style={{ background: 'var(--accent)', color: 'white' }}
+            >
+              Mark all as read
+            </button>
+          )}
+        </div>
       )}
     </div>
   );

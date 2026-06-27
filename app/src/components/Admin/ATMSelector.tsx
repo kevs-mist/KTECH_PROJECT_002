@@ -127,13 +127,14 @@ export default function ATMSelector({ onATMSelect, onError }: ATMSelectorProps) 
             onFocus={() => setIsOpen(true)}
             placeholder={loading ? "Loading ATMs..." : "Search ATM ID or Bank Name..."}
             disabled={loading}
-            className="w-full bg-white/5 border border-white/10 rounded-xl pl-4 pr-10 py-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all placeholder:text-slate-500"
+            className="w-full rounded-xl pl-4 pr-10 py-3 text-sm focus:outline-none transition-all"
+            style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
         />
         {fetchingEngineer && (
-            <div className="absolute right-3 w-4 h-4 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+            <div className="absolute right-3 w-4 h-4 rounded-full animate-spin" style={{ border: '2px solid var(--border-subtle)', borderTopColor: 'var(--accent)' }} />
         )}
         {!fetchingEngineer && search && (
-            <button onClick={handleClear} className="absolute right-3 text-slate-500 hover:text-white">
+            <button onClick={handleClear} className="absolute right-3 transition-colors" style={{ color: 'var(--text-tertiary)' }}>
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
                 </svg>
@@ -142,22 +143,23 @@ export default function ATMSelector({ onATMSelect, onError }: ATMSelectorProps) 
       </div>
 
       {isOpen && filteredATMs.length > 0 && !selectedATM && (
-        <div className="absolute z-[110] w-full mt-2 bg-[#0f172a] border border-white/10 rounded-xl shadow-2xl max-h-60 overflow-y-auto custom-scrollbar">
+        <div className="absolute z-[110] w-full mt-2 rounded-xl shadow-2xl max-h-60 overflow-y-auto custom-scrollbar" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}>
             {filteredATMs.map(atm => (
                 <button
                     key={atm.id}
                     onClick={() => handleSelect(atm)}
-                    className="w-full text-left px-4 py-3 hover:bg-white/5 border-b border-white/5 last:border-0 transition-colors flex flex-col gap-1"
+                    className="w-full text-left px-4 py-3 border-b transition-colors flex flex-col gap-1"
+                    style={{ borderBottom: '1px solid var(--border-subtle)' }}
                 >
-                    <span className="text-sm font-bold text-indigo-400">{atm.atm_id}</span>
-                    <span className="text-[10px] text-slate-400">{atm.bank_name} - {atm.location}</span>
+                    <span className="text-sm font-bold" style={{ color: 'var(--accent)' }}>{atm.atm_id}</span>
+                    <span className="text-[10px]" style={{ color: 'var(--text-tertiary)' }}>{atm.bank_name} - {atm.location}</span>
                 </button>
             ))}
         </div>
       )}
       
         {isOpen && search && filteredATMs.length === 0 && !loading && !selectedATM && (
-          <div className="absolute z-[110] w-full mt-2 bg-[#0f172a] border border-white/10 rounded-xl shadow-2xl p-4 text-center text-xs text-slate-500">
+          <div className="absolute z-[110] w-full mt-2 rounded-xl shadow-2xl p-4 text-center text-xs" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', color: 'var(--text-tertiary)' }}>
             No ATMs found matching &quot;{search}&quot;
           </div>
         )}

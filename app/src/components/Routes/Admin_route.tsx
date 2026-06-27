@@ -30,10 +30,11 @@ export default function AdminRoute({ children }: { children: React.ReactNode }) 
                 role="status"
                 aria-label="Loading"
                 aria-live="polite"
-                className="flex items-center justify-center min-h-screen bg-slate-900 text-white font-mono"
+                className="flex items-center justify-center min-h-screen"
+                style={{ background: 'var(--bg-base)', color: 'var(--text-primary)', fontFamily: 'monospace' }}
             >
                 <div className="flex flex-col items-center gap-4">
-                    <div className="w-10 h-10 border-2 border-indigo-500/30 border-t-indigo-400 rounded-full animate-spin" aria-hidden="true"></div>
+                    <div className="w-10 h-10 rounded-full animate-spin" style={{ border: '2px solid var(--border-subtle)', borderTopColor: 'var(--accent)' }} aria-hidden="true"></div>
                     <p className="tracking-widest text-xs uppercase opacity-60">Initializing Session...</p>
                     <span className="sr-only">Initializing Session, please wait...</span>
                 </div>

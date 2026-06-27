@@ -145,15 +145,15 @@ export default function DataImportModal({ isOpen, onClose, onSuccess }: DataImpo
     };
 
     return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
-            <div className="bg-[#0f172a] border border-white/10 w-full max-w-2xl rounded-[2rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in duration-300" style={{ background: 'rgba(0, 0, 0, 0.6)' }}>
+            <div className="w-full max-w-2xl rounded-[2rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}>
                 {/* Header */}
-                <div className="px-8 py-6 border-b border-white/5 flex justify-between items-center">
+                <div className="px-8 py-6 flex justify-between items-center" style={{ borderBottom: '1px solid var(--border-subtle)' }}>
                     <div>
-                        <h2 className="text-xl font-bold text-white">Import ATM Data</h2>
-                        <p className="text-xs text-slate-500 uppercase tracking-widest font-bold mt-1">Upload Excel (.xlsx)</p>
+                        <h2 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>Import ATM Data</h2>
+                        <p className="text-xs uppercase tracking-widest font-bold mt-1" style={{ color: 'var(--text-tertiary)' }}>Upload Excel (.xlsx)</p>
                     </div>
-                    <button onClick={() => { handleReset(); onClose(); }} className="text-slate-500 hover:text-white transition-colors">
+                    <button onClick={() => { handleReset(); onClose(); }} className="transition-colors" style={{ color: 'var(--text-tertiary)' }}>
                         <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
                         </svg>
@@ -164,7 +164,7 @@ export default function DataImportModal({ isOpen, onClose, onSuccess }: DataImpo
                 <div className="p-8 space-y-5 max-h-[70vh] overflow-y-auto custom-scrollbar">
                     {/* Error */}
                     {error && (
-                        <div className="p-4 bg-red-500/10 border border-red-500/20 text-red-400 text-xs rounded-xl flex items-center gap-2">
+                        <div className="p-4 text-xs rounded-xl flex items-center gap-2" style={{ background: 'var(--error-soft)', border: '1px solid var(--error)', color: 'var(--error)' }}>
                             <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
                             {error}
                         </div>
@@ -172,18 +172,18 @@ export default function DataImportModal({ isOpen, onClose, onSuccess }: DataImpo
 
                     {/* Success */}
                     {result && (
-                        <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs rounded-xl space-y-1">
+                        <div className="p-4 text-xs rounded-xl space-y-1" style={{ background: 'var(--success-soft)', border: '1px solid var(--success)', color: 'var(--success)' }}>
                             <p className="font-bold text-sm">✓ Import Complete</p>
                             <p><strong>{result.imported}</strong> rows imported successfully</p>
                             {result.skipped > 0 && <p><strong>{result.skipped}</strong> rows skipped (missing ATM ID)</p>}
-                            <p className="text-slate-500">Total rows processed: {result.total}</p>
+                            <p className="text-slate-500" style={{ color: 'var(--text-tertiary)' }}>Total rows processed: {result.total}</p>
                         </div>
                     )}
 
                     {/* Dropzone */}
                     {!file && !result && (
-                        <label className="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed border-white/10 rounded-2xl cursor-pointer hover:border-indigo-500/50 hover:bg-white/[0.02] transition-all group">
-                            <div className="flex flex-col items-center gap-3 text-slate-500 group-hover:text-indigo-400 transition-colors">
+                        <label className="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed rounded-2xl cursor-pointer transition-all group" style={{ borderColor: 'var(--border-subtle)' }}>
+                            <div className="flex flex-col items-center gap-3 transition-colors" style={{ color: 'var(--text-tertiary)' }}>
                                 <svg className="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                                 </svg>
@@ -204,22 +204,22 @@ export default function DataImportModal({ isOpen, onClose, onSuccess }: DataImpo
 
                     {/* File info */}
                     {file && !result && (
-                        <div className="flex items-center justify-between p-4 bg-white/[0.03] border border-white/10 rounded-xl">
+                        <div className="flex items-center justify-between p-4 rounded-xl" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)' }}>
                             <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 bg-emerald-500/10 border border-emerald-500/20 rounded-xl flex items-center justify-center text-emerald-400 text-lg font-bold">📊</div>
+                                <div className="w-10 h-10 rounded-xl flex items-center justify-center text-lg font-bold" style={{ background: 'var(--success-soft)', border: '1px solid var(--success)', color: 'var(--success)' }}>📊</div>
                                 <div>
-                                    <p className="text-sm font-bold text-white">{file.name}</p>
-                                    <p className="text-[10px] text-slate-500">{(file.size / 1024).toFixed(1)} KB</p>
+                                    <p className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>{file.name}</p>
+                                    <p className="text-[10px]" style={{ color: 'var(--text-tertiary)' }}>{(file.size / 1024).toFixed(1)} KB</p>
                                 </div>
                             </div>
-                            <button onClick={handleReset} className="text-xs text-slate-500 hover:text-red-400 transition-colors font-bold uppercase tracking-widest">Remove</button>
+                            <button onClick={handleReset} className="text-xs font-bold uppercase tracking-widest transition-colors" style={{ color: 'var(--text-tertiary)' }}>Remove</button>
                         </div>
                     )}
 
                     {/* Parsing indicator */}
                     {isParsing && (
-                        <div className="flex items-center gap-3 text-slate-400 text-sm">
-                            <div className="w-4 h-4 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+                        <div className="flex items-center gap-3 text-sm" style={{ color: 'var(--text-tertiary)' }}>
+                            <div className="w-4 h-4 rounded-full animate-spin" style={{ border: '2px solid var(--border-subtle)', borderTopColor: 'var(--accent)' }} />
                             Parsing Excel file...
                         </div>
                     )}
@@ -227,21 +227,21 @@ export default function DataImportModal({ isOpen, onClose, onSuccess }: DataImpo
                     {/* Preview */}
                     {previewData.length > 0 && !result && (
                         <div>
-                            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3">Preview (first 5 rows)</p>
-                            <div className="overflow-x-auto bg-white/[0.02] border border-white/5 rounded-xl">
+                            <p className="text-[10px] font-bold uppercase tracking-widest mb-3" style={{ color: 'var(--text-tertiary)' }}>Preview (first 5 rows)</p>
+                            <div className="overflow-x-auto rounded-xl" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)' }}>
                                 <table className="w-full text-left text-xs">
                                     <thead>
-                                        <tr className="border-b border-white/5">
+                                        <tr style={{ borderBottom: '1px solid var(--border-subtle)' }}>
                                             {previewColumns.map(col => (
-                                                <th key={col} className="px-4 py-3 text-[9px] font-bold text-slate-500 uppercase tracking-widest whitespace-nowrap">{col}</th>
+                                                <th key={col} className="px-4 py-3 text-[9px] font-bold uppercase tracking-widest whitespace-nowrap" style={{ color: 'var(--text-tertiary)' }}>{col}</th>
                                             ))}
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {previewData.map((row, i) => (
-                                            <tr key={i} className="border-b border-white/5 last:border-0">
+                                            <tr key={i} style={{ borderBottom: '1px solid var(--border-subtle)' }}>
                                                 {previewColumns.map(col => (
-                                                    <td key={col} className="px-4 py-2.5 text-slate-300 whitespace-nowrap max-w-[200px] truncate">{String(row[col] ?? "")}</td>
+                                                    <td key={col} className="px-4 py-2.5 whitespace-nowrap max-w-[200px] truncate" style={{ color: 'var(--text-secondary)' }}>{String(row[col] ?? "")}</td>
                                                 ))}
                                             </tr>
                                         ))}
@@ -253,25 +253,25 @@ export default function DataImportModal({ isOpen, onClose, onSuccess }: DataImpo
 
                     {/* Expected columns info */}
                     {!file && !result && (
-                        <div className="p-4 bg-indigo-500/5 border border-indigo-500/10 rounded-xl">
-                            <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest mb-2">Expected Columns</p>
+                        <div className="p-4 rounded-xl" style={{ background: 'var(--accent-soft)', border: '1px solid var(--accent-subtle)' }}>
+                            <p className="text-[10px] font-bold uppercase tracking-widest mb-2" style={{ color: 'var(--accent)' }}>Expected Columns</p>
                             <div className="flex flex-wrap gap-1.5">
                                 {["bank_name", "atm_id", "location", "address", "state", "engineer_name", "engineer_contact", "engineer_email"].map(col => (
-                                    <span key={col} className="text-[9px] font-bold text-slate-400 bg-white/5 px-2.5 py-1 rounded-lg">{col}</span>
+                                    <span key={col} className="text-[9px] font-bold px-2.5 py-1 rounded-lg" style={{ color: 'var(--text-tertiary)', background: 'var(--bg-elevated)' }}>{col}</span>
                                 ))}
                             </div>
-                            <p className="text-[10px] text-slate-600 mt-2">Only <strong className="text-slate-400">atm_id</strong> is required. Duplicate ATM IDs will be updated.</p>
-                            <p className="text-[10px] text-slate-600 mt-1">The ATM ID column may also be labeled <strong className="text-slate-400">SR NO</strong>, <strong className="text-slate-400">SR_NO</strong>, or <strong className="text-slate-400">SRNO</strong>.</p>
+                            <p className="text-[10px] mt-2" style={{ color: 'var(--text-tertiary)' }}>Only <strong style={{ color: 'var(--text-secondary)' }}>atm_id</strong> is required. Duplicate ATM IDs will be updated.</p>
+                            <p className="text-[10px] mt-1" style={{ color: 'var(--text-tertiary)' }}>The ATM ID column may also be labeled <strong style={{ color: 'var(--text-secondary)' }}>SR NO</strong>, <strong style={{ color: 'var(--text-secondary)' }}>SR_NO</strong>, or <strong style={{ color: 'var(--text-secondary)' }}>SRNO</strong>.</p>
                         </div>
                     )}
                 </div>
 
                 {/* Footer */}
-                <div className="px-8 py-5 border-t border-white/5 flex gap-3">
+                <div className="px-8 py-5 flex gap-3" style={{ borderTop: '1px solid var(--border-subtle)' }}>
                     <button
                         type="button"
                         onClick={() => { handleReset(); onClose(); }}
-                        className="flex-1 px-6 py-3.5 rounded-xl text-xs font-bold text-slate-400 hover:text-white bg-white/5 hover:bg-white/10 transition-all"
+                        className="flex-1 px-6 py-3.5 rounded-xl text-xs font-bold transition-all" style={{ color: 'var(--text-tertiary)', background: 'var(--bg-elevated)' }}
                     >
                         {result ? "Close" : "Cancel"}
                     </button>
@@ -279,7 +279,7 @@ export default function DataImportModal({ isOpen, onClose, onSuccess }: DataImpo
                         <button
                             onClick={handleUpload}
                             disabled={isUploading || previewData.length === 0}
-                            className="flex-[2] px-6 py-3.5 rounded-xl text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-500 shadow-lg shadow-emerald-500/20 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                            className="flex-[2] px-6 py-3.5 rounded-xl text-xs font-bold transition-all disabled:opacity-50 flex items-center justify-center gap-2" style={{ color: 'white', background: 'var(--success)' }}
                         >
                             {isUploading ? (
                                 <>
