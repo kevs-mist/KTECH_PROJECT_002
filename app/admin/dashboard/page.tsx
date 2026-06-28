@@ -529,7 +529,7 @@ export default function AdminDashboard() {
 
                 {/* Operations Bar: Search & Filters */}
                 <div className="mt-8 mb-6 flex flex-col md:flex-row gap-4 items-center justify-between">
-                    <div className="flex items-center gap-1 p-1 rounded-lg w-full md:w-auto overflow-x-auto no-scrollbar" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}>
+                    <div className="flex items-center gap-1 p-1 rounded-lg w-full md:w-auto flex-wrap md:flex-nowrap md:overflow-x-auto no-scrollbar" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}>
                         {["all", "open", "assigned", "in_progress", "re_raised", "closed"].map((s) => (
                             <button
                                 key={s}
