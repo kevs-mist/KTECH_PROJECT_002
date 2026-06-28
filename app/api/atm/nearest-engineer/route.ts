@@ -51,8 +51,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
     const user = await verifyRequestUser(token);
-    if (user.role == "admin") {
-      return console.log("Admin user detected, proceeding with request");
+    if (user.role !== "employee" && user.role !== "admin") {
+      return NextResponse.json({ error: "Forbidden: Employee or Admin access required" }, { status: 403 });
     }
 
     const supabase = createAdminClient();
