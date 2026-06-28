@@ -1,138 +1,316 @@
-import { auth } from "../firebase";
-import { parseJsonResponse } from "../apiClient";
+import "server-only";
+import { NextResponse } from "next/server";
+import { createAdminClient } from "../../utils/supabase/admin";
+import {
+    assertSameOrigin,
+    checkRateLimit,
+    getBearerToken,
+    getClientIp,
+    jsonError,
+    rateLimitResponse,
+    verifyRequestUser,
+} from "../../src/lib/server/apiSecurity";
+import { mailingService } from "../../src/lib/mailingService";
 
-export interface Ticket {
-    id?: string;
-    ticket_no?: string;
-    title: string;
-    description: string;
-    issue_type: string;
-    status?: string;
-    atm_id: string;
-    atm_location_id?: string;
-    bank_id: string;
-    atm_location: string;
-    bank_location?: string;
-    assigned_to?: string;
-    created_by: string;
-    created_at?: string;
-    updated_at?: string;
-    proof_media_url?: string;
-    resolution_notes?: string;
-    priority?: string;
-    version?: number; // For optimistic locking
-    check_ins?: any[]; // Check-ins array from DB
+export const dynamic = "force-dynamic";
+
+function requireToken(request: Request): string {
+    const token = getBearerToken(request);
+    if (!token) throw new Error("Unauthorized: Please log in again.");
+    return token;
 }
 
-interface AdminStats {
-    total: number;
-    open: number;
-    closed: number;
-    escalated: number;
-}
+// ─── GET ──────────────────────────────────────────────────────────────────────
 
-// Client-side token cache to reduce Firebase Auth API calls
-let cachedToken: string | null = null;
-let tokenExpiry: number = 0;
-const TOKEN_CACHE_DURATION = 55 * 60 * 1000; // 55 minutes (Firebase tokens last 1 hour)
+export async function GET(request: Request) {
+    try {
+        const limit = checkRateLimit({
+            key: `tickets:get:${getClientIp(request)}`,
+            limit: 180,
+            windowMs: 60 * 1000,
+        });
+        if (!limit.success) return rateLimitResponse(limit.resetAt);
 
-export const ticketService = {
-    async getIdToken() {
-        // Check if we have a valid cached token
-        const now = Date.now();
-        if (cachedToken && tokenExpiry > now) {
-            return cachedToken;
+        const token = requireToken(request);
+        const url = new URL(request.url);
+        const resource = url.searchParams.get("resource");
+
+        if (resource === "admin-stats") {
+            const { getAdminStatsAction } = await import("../../src/lib/actions/ticketActions");
+            return NextResponse.json(await getAdminStatsAction(token));
         }
 
-        // Force refresh only if cache is expired
-        const forceRefresh = !cachedToken || tokenExpiry <= now;
-        
-        try {
-            const token = await auth.currentUser?.getIdToken(forceRefresh);
-            if (!token) throw new Error("Unauthorized: Please log in again.");
-            
-            // Cache the token
-            cachedToken = token;
-            tokenExpiry = now + TOKEN_CACHE_DURATION;
-            
-            return token;
-        } catch (error: any) {
-            // Clear cache on error to force refresh on next attempt
-            cachedToken = null;
-            tokenExpiry = 0;
-            
-            if (error?.code === 'auth/quota-exceeded') {
-                throw new Error("Authentication quota exceeded. Please wait a moment and try again.");
-            }
-            throw error;
-        }
-    },
+        const { getTicketsAction } = await import("../../src/lib/actions/ticketActions");
+        return NextResponse.json(await getTicketsAction(token));
 
-    async request<T>(path: string, init: RequestInit = {}): Promise<T> {
-        const token = await this.getIdToken();
-        const response = await fetch(path, {
-            ...init,
-            headers: {
-                ...(init.headers || {}),
-                Authorization: `Bearer ${token}`,
-            },
-        });
-        return parseJsonResponse<T>(response, path);
-    },
-
-    async post<T>(operation: string, payload: Record<string, unknown>): Promise<T> {
-        return this.request<T>("/api/tickets", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ operation, ...payload }),
-        });
-    },
-
-    async createTicket(ticket: Ticket): Promise<Ticket> {
-        return this.post<Ticket>("create", { ticket });
-    },
-
-    async getAllTickets(): Promise<Ticket[]> {
-        return this.request<Ticket[]>("/api/tickets");
-    },
-
-    async getEmployeeTickets(): Promise<Ticket[]> {
-        return this.request<Ticket[]>("/api/tickets");
-    },
-
-    async getAdminStats(): Promise<AdminStats> {
-        return this.request<AdminStats>("/api/tickets?resource=admin-stats");
-    },
-
-    async acceptTicket(ticketId: string, _employeeUid: string, currentVersion: number): Promise<Ticket> {
-        return this.post<Ticket>("accept", { ticketId, currentVersion });
-    },
-
-    async resolveTicket(ticketId: string, currentVersion: number, proofMediaUrl: string, resolutionNotes?: string): Promise<Ticket> {
-        return this.post<Ticket>("resolve", { ticketId, currentVersion, proofMediaUrl, resolutionNotes });
-    },
-
-    async escalateTicket(ticketId: string, currentVersion: number, proofMediaUrl?: string, escalationNotes?: string): Promise<Ticket> {
-        return this.post<Ticket>("escalate", { ticketId, currentVersion, proofMediaUrl, escalationNotes });
-    },
-
-    async markInProgress(ticketId: string, currentVersion: number): Promise<Ticket> {
-        return this.post<Ticket>("mark-in-progress", { ticketId, currentVersion });
-    },
-
-    async adminCloseTicket(ticketId: string, currentVersion: number, adminNotes?: string): Promise<Ticket> {
-        return this.post<Ticket>("admin-close", { ticketId, currentVersion, adminNotes });
-    },
-
-    async assignToEmployee(ticketId: string, employeeUid: string, currentVersion: number): Promise<Ticket> {
-        return this.post<Ticket>("assign", { ticketId, employeeUid, currentVersion });
-    },
-
-    async adminReleaseTicket(ticketId: string, currentVersion: number): Promise<Ticket> {
-        return this.post<Ticket>("admin-release", { ticketId, currentVersion });
-    },
-
-    async checkIn(ticketId: string, currentVersion: number, latitude: number, longitude: number): Promise<{ success: boolean, checkIn: any, ticket: Ticket | null }> {
-        return this.post<{ success: boolean, checkIn: any, ticket: Ticket | null }>("check-in", { ticketId, currentVersion, latitude, longitude });
+    } catch (error: unknown) {
+        console.error("[/api/tickets GET] error:", error);
+        return jsonError(error, "Ticket request failed");
     }
-};
+}
+
+// ─── POST ─────────────────────────────────────────────────────────────────────
+
+export async function POST(request: Request) {
+    try {
+        assertSameOrigin(request);
+
+        const limit = checkRateLimit({
+            key: `tickets:post:${getClientIp(request)}`,
+            limit: 90,
+            windowMs: 60 * 1000,
+        });
+        if (!limit.success) return rateLimitResponse(limit.resetAt);
+
+        const token = requireToken(request);
+        const user = await verifyRequestUser(token);
+
+        const body = await request.json();
+
+        if (!body.operation || typeof body.operation !== "string") {
+            return NextResponse.json({ error: "Operation is required" }, { status: 400 });
+        }
+
+        const supabase = createAdminClient();
+
+        // ── CREATE — auto-assigns engineer from atm_locations ───────────────
+        if (body.operation === "create") {
+            if (!body.ticket) {
+                return NextResponse.json({ error: "ticket data is required" }, { status: 400 });
+            }
+
+            const ticket = body.ticket;
+
+            // Validate required ticket fields
+            if (!ticket.title || ticket.title.length < 5) {
+                return NextResponse.json({ error: "title must be at least 5 characters" }, { status: 400 });
+            }
+            if (!ticket.description || ticket.description.length < 10) {
+                return NextResponse.json({ error: "description must be at least 10 characters" }, { status: 400 });
+            }
+            if (!ticket.atm_id) {
+                return NextResponse.json({ error: "atm_id is required" }, { status: 400 });
+            }
+
+            let assignedTo: string | null = null;
+            let assignedEmail: string | null = null;
+            let assignedName: string | null = null;
+            let initialStatus = "open";
+
+            // Look up engineer from atm_locations using correct column names
+            const { data: atm } = await supabase
+                .from("atm_locations")
+                .select("engineer_name, email_id, contact_no")
+                .eq("atm_id", ticket.atm_id)
+                .single();
+
+            if (atm?.email_id) {
+                // Get engineer's firebase_uid from users table
+                const { data: engineer } = await supabase
+                    .from("users")
+                    .select("firebase_uid, full_name, email, employee_id, department, status, joined_at, is_online, last_seen, active_tickets, closed_tickets")
+                    .eq("email", atm.email_id)
+                    .eq("role", "employee")
+                    .single();
+
+                if (engineer?.firebase_uid) {
+                    assignedTo    = engineer.firebase_uid;
+                    assignedEmail = engineer.email;
+                    assignedName  = engineer.full_name;
+                    initialStatus = "assigned";
+                }
+            }
+
+            // Insert ticket with auto-assigned engineer
+            const { data: newTicket, error: insertError } = await supabase
+                .from("tickets")
+                .insert({
+                    ...ticket,
+                    assigned_to:  assignedTo,
+                    status:       initialStatus,
+                    created_by:   user.uid,
+                    created_at:   new Date().toISOString(),
+                    updated_at:   new Date().toISOString(),
+                    version:      1,
+                })
+                .select()
+                .single();
+
+            if (insertError || !newTicket) {
+                console.error("[/api/tickets create] insert error:", insertError);
+                return NextResponse.json({ error: "Failed to create ticket" }, { status: 500 });
+            }
+
+            // Fire assignment email — never let this break ticket creation
+            if (assignedTo && assignedEmail) {
+                try {
+                    await mailingService.notify("ticket_assigned", newTicket, {
+                        firebase_uid:   assignedTo,
+                        email:          assignedEmail,
+                        full_name:      assignedName,
+                        employee_id:    "",
+                        department:     null,
+                        status:         "active",
+                        joined_at:      "",
+                        is_online:      false,
+                        last_seen:      "",
+                        active_tickets: 0,
+                        closed_tickets: 0,
+                    });
+                } catch (emailErr) {
+                    console.error("[/api/tickets create] email failed:", emailErr);
+                }
+            }
+
+            return NextResponse.json(newTicket);
+        }
+
+        // ── ALL OTHER OPERATIONS ────────────────────────────────────────────
+        const {
+            acceptTicketAction,
+            adminCloseTicketAction,
+            adminReleaseTicketAction,
+            assignTicketToEmployeeAction,
+            escalateTicketAction,
+            markInProgressAction,
+            resolveTicketAction,
+            checkInAction,
+        } = await import("../../src/lib/actions/ticketActions");
+
+        switch (body.operation) {
+
+            case "accept": {
+                if (!body.ticketId || body.currentVersion === undefined) {
+                    return NextResponse.json(
+                        { error: "ticketId and currentVersion are required" },
+                        { status: 400 }
+                    );
+                }
+                return NextResponse.json(
+                    await acceptTicketAction(token, body.ticketId, body.currentVersion)
+                );
+            }
+
+            case "resolve": {
+                if (!body.ticketId || body.currentVersion === undefined || !body.proofMediaUrl) {
+                    return NextResponse.json(
+                        { error: "ticketId, currentVersion and proofMediaUrl are required" },
+                        { status: 400 }
+                    );
+                }
+                return NextResponse.json(
+                    await resolveTicketAction(
+                        token,
+                        body.ticketId,
+                        body.currentVersion,
+                        body.proofMediaUrl,
+                        body.resolutionNotes
+                    )
+                );
+            }
+
+            case "escalate": {
+                if (!body.ticketId || body.currentVersion === undefined) {
+                    return NextResponse.json(
+                        { error: "ticketId and currentVersion are required" },
+                        { status: 400 }
+                    );
+                }
+                return NextResponse.json(
+                    await escalateTicketAction(
+                        token,
+                        body.ticketId,
+                        body.currentVersion,
+                        body.proofMediaUrl,
+                        body.escalationNotes
+                    )
+                );
+            }
+
+            case "mark-in-progress": {
+                if (!body.ticketId || body.currentVersion === undefined) {
+                    return NextResponse.json(
+                        { error: "ticketId and currentVersion are required" },
+                        { status: 400 }
+                    );
+                }
+                return NextResponse.json(
+                    await markInProgressAction(token, body.ticketId, body.currentVersion)
+                );
+            }
+
+            case "check-in": {
+                if (!body.ticketId || body.currentVersion === undefined) {
+                    return NextResponse.json(
+                        { error: "ticketId and currentVersion are required" },
+                        { status: 400 }
+                    );
+                }
+                const lat = Number(body.latitude);
+                const lon = Number(body.longitude);
+                if (isNaN(lat) || isNaN(lon) || lat < -90 || lat > 90 || lon < -180 || lon > 180) {
+                    return NextResponse.json(
+                        { error: "Valid latitude and longitude are required" },
+                        { status: 400 }
+                    );
+                }
+                return NextResponse.json(
+                    await checkInAction(token, body.ticketId, body.currentVersion, lat, lon)
+                );
+            }
+
+            case "admin-close": {
+                if (!body.ticketId || body.currentVersion === undefined) {
+                    return NextResponse.json(
+                        { error: "ticketId and currentVersion are required" },
+                        { status: 400 }
+                    );
+                }
+                return NextResponse.json(
+                    await adminCloseTicketAction(
+                        token,
+                        body.ticketId,
+                        body.currentVersion,
+                        body.adminNotes
+                    )
+                );
+            }
+
+            case "assign": {
+                if (!body.ticketId || !body.employeeUid || body.currentVersion === undefined) {
+                    return NextResponse.json(
+                        { error: "ticketId, employeeUid and currentVersion are required" },
+                        { status: 400 }
+                    );
+                }
+                return NextResponse.json(
+                    await assignTicketToEmployeeAction(
+                        token,
+                        body.ticketId,
+                        body.employeeUid,
+                        body.currentVersion
+                    )
+                );
+            }
+
+            case "admin-release": {
+                if (!body.ticketId || body.currentVersion === undefined) {
+                    return NextResponse.json(
+                        { error: "ticketId and currentVersion are required" },
+                        { status: 400 }
+                    );
+                }
+                return NextResponse.json(
+                    await adminReleaseTicketAction(token, body.ticketId, body.currentVersion)
+                );
+            }
+
+            default:
+                return NextResponse.json({ error: "Unknown ticket operation" }, { status: 400 });
+        }
+
+    } catch (error: unknown) {
+        console.error("[/api/tickets POST] error:", error);
+        return jsonError(error, "Ticket request failed");
+    }
+}

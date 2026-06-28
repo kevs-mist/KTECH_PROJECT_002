@@ -33,10 +33,8 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        // Verify the requesting user is authenticated
         await verifyRequestUser(token);
 
-        // Parse and validate body
         const { atmId } = await request.json();
         if (!atmId || typeof atmId !== "string") {
             return NextResponse.json({ error: "ATM ID is required" }, { status: 400 });
@@ -44,10 +42,11 @@ export async function POST(request: Request) {
 
         const supabase = createAdminClient();
 
-        // Step 1: Get the ATM — engineer is already assigned in the DB
+        // Fetch ATM row using correct column names from your sheet:
+        // bank_name, atm_id, location, address, state, engineer_name, contact_no, email_id
         const { data: atm, error: atmError } = await supabase
             .from("atm_locations")
-            .select("atm_id, engineer_name, engineer_email, engineer_contact")
+            .select("atm_id, engineer_name, contact_no, email_id")
             .eq("atm_id", atmId)
             .single();
 
@@ -55,27 +54,27 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: "ATM not found" }, { status: 404 });
         }
 
-        if (!atm.engineer_email) {
+        if (!atm.email_id) {
             return NextResponse.json(
                 { error: "No engineer assigned to this ATM location" },
                 { status: 404 }
             );
         }
 
-        // Step 2: Look up engineer's firebase_uid from users table
+        // Look up engineer firebase_uid via email_id
         const { data: engineerUser } = await supabase
             .from("users")
             .select("firebase_uid")
-            .eq("email", atm.engineer_email)
+            .eq("email", atm.email_id)
             .eq("role", "employee")
             .single();
 
         return NextResponse.json({
             success: true,
             data: {
-                engineer_name:    atm.engineer_name    ?? null,
-                engineer_email:   atm.engineer_email,
-                engineer_contact: atm.engineer_contact ?? null,
+                engineer_name:    atm.engineer_name ?? null,
+                engineer_email:   atm.email_id,
+                engineer_contact: atm.contact_no    ?? null,
                 engineer_id:      engineerUser?.firebase_uid ?? null,
                 method:           "atm_assigned",
             },
