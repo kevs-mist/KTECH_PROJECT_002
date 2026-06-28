@@ -25,8 +25,8 @@ export async function GET(request: NextRequest, context: { params: Promise<{ atm
     if (!limit.success) return rateLimitResponse(limit.resetAt);
 
     const user = await requireVerifiedUser(request);
-    if (user.role !== "employee") {
-      return NextResponse.json({ error: "Forbidden: Employee access required" }, { status: 403 });
+    if (user.role !== "employee" && user.role !== "admin") {
+      return NextResponse.json({ error: "Forbidden: Employee or Admin access required" }, { status: 403 });
     }
 
     const { atmId } = await context.params;

@@ -106,16 +106,138 @@ export async function POST(request: Request) {
     }
 
     const supabase = createAdminClient();
-    const { data, error } = await supabase
+    const { data: upsertData, error: upsertError } = await supabase
       .from("atm_locations")
       .upsert(validRows, { onConflict: "atm_id" })
-      .select("atm_id");
+      .select("id, atm_id, latitude, longitude, engineer_name, engineer_contact, engineer_email");
 
-    if (error) throw error;
+    if (upsertError) throw upsertError;
+
+    // Helper function to calculate distance between two coordinates
+    const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
+      const R = 6371; // Earth's radius in km
+      const dLat = ((lat2 - lat1) * Math.PI) / 180;
+      const dLon = ((lon2 - lon1) * Math.PI) / 180;
+      const a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos((lat1 * Math.PI) / 180) *
+          Math.cos((lat2 * Math.PI) / 180) *
+          Math.sin(dLon / 2) *
+          Math.sin(dLon / 2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      return R * c;
+    };
+
+    // Process each upserted record to assign nearest engineer if coordinates are available
+    const updatePromises = upsertData?.map(async (atm: any) => {
+      // Skip if we don't have valid coordinates
+      if (
+        atm.latitude === null ||
+        atm.longitude === null ||
+        isNaN(atm.latitude) ||
+        isNaN(atm.longitude)
+      ) {
+        return null;
+      }
+
+      try {
+        // Get all employees
+        const { data: employees } = await supabase
+          .from("users")
+          .select("firebase_uid, full_name, email")
+          .eq("role", "employee");
+
+        if (!employees || employees.length === 0) {
+          // No employees found, skip assignment
+          return null;
+        }
+
+        // Get latest check-in locations for employees
+        const { data: checkIns } = await supabase
+          .from("check_ins")
+          .select("employee_id, latitude, longitude")
+          .order("checked_in_at", { ascending: false });
+
+        // Map to get latest location per employee (most recent check-in)
+        const latestLocations = new Map<string, { lat: number; lon: number }>();
+        if (checkIns) {
+          for (const ci of checkIns) {
+            if (!latestLocations.has(ci.employee_id)) {
+              latestLocations.set(ci.employee_id, {
+                lat: ci.latitude,
+                lon: ci.longitude,
+              });
+            }
+          }
+        }
+
+        // Find nearest engineer based on check-in locations
+        let nearestEmployee: {
+          firebase_uid: string;
+          full_name: string;
+          email: string;
+        } | null = null;
+        let minDistance = Infinity;
+
+        for (const employee of employees) {
+          const loc = latestLocations.get(employee.firebase_uid);
+          if (loc) {
+            const distance = calculateDistance(
+              atm.latitude,
+              atm.longitude,
+              loc.lat,
+              lon.lon
+            );
+            if (distance < minDistance) {
+              minDistance = distance;
+              nearestEmployee = {
+                firebase_uid: employee.firebase_uid,
+                full_name: employee.full_name,
+                email: employee.email,
+              };
+            }
+          }
+        }
+
+        // If we found a nearby engineer, update the ATM record with their info
+        if (nearestEmployee) {
+          // Get engineer's details to ensure we have the latest info
+          const { data: engineerDetails } = await supabase
+            .from("users")
+            .select("full_name, email")
+            .eq("firebase_uid", nearestEmployee.firebase_uid)
+            .eq("role", "employee")
+            .single();
+
+          if (engineerDetails) {
+            const updateData: any = {
+              engineer_name: engineerDetails.full_name,
+              engineer_email: engineerDetails.email,
+              // For engineer_contact, we'll use email as fallback since it's not in users table
+              engineer_contact: engineerDetails.email,
+            };
+
+            // Update the ATM record with the engineer's information
+            await supabase
+              .from("atm_locations")
+              .update(updateData)
+              .eq("id", atm.id);
+          }
+        }
+        return null;
+      } catch (error) {
+        console.error(`Error processing ATM ${atm.atm_id}:`, error);
+        // Don't fail the whole import for one ATM's processing error
+        return null;
+      }
+    }) ?? [];
+
+    // Wait for all update operations to complete
+    await Promise.all(updatePromises.filter((p): p is Promise<any> => p !== null));
 
     return NextResponse.json({
       success: true,
-      imported: data?.length || validRows.length,
+      imported: upsertData?.length || validRows.length,
       skipped: skippedRows.length,
       skippedRows: skippedRows.slice(0, 20),
       total: rows.length,
