@@ -17,6 +17,7 @@ const COLUMN_MAP: Record<string, string> = {
   "state": "state",
   "engineer_name": "engineer_name",
   "engineer name": "engineer_name",
+  "engineer": "engineer_name",
   "engineer_contact": "engineer_contact",
   "engineer contact": "engineer_contact",
   "engineer_email": "engineer_email",

@@ -10,6 +10,7 @@ import {
     getBearerToken,
     verifyRequestUser,
 } from "../../../src/lib/server/apiSecurity";
+import { resolveEngineerFromAtm } from "../../../src/lib/server/engineerLookup";
 
 export const dynamic = "force-dynamic";
 
@@ -42,40 +43,41 @@ export async function POST(request: Request) {
 
         const supabase = createAdminClient();
 
-        // Fetch ATM row using correct column names from your sheet:
-        // bank_name, atm_id, location, address, state, engineer_name, contact_no, email_id
+        // Fetch ATM row. Columns match migration `20260626000001_add_engineer_fields_to_atm_locations.sql`:
+        //   engineer_name, engineer_contact, engineer_email
         const { data: atm, error: atmError } = await supabase
             .from("atm_locations")
-            .select("atm_id, engineer_name, contact_no, email_id")
+            .select("atm_id, engineer_name, engineer_contact, engineer_email")
             .eq("atm_id", atmId)
-            .single();
+            .maybeSingle();
 
-        if (atmError || !atm) {
+        if (atmError) {
+            console.error("[/api/atm/nearest] atm query error:", atmError);
+            return NextResponse.json({ error: "Failed to look up ATM" }, { status: 500 });
+        }
+
+        if (!atm) {
             return NextResponse.json({ error: "ATM not found" }, { status: 404 });
         }
 
-        if (!atm.email_id) {
+        // Resolve engineer by email first, then fall back to name (so an Excel
+        // column titled just "engineer" still drives auto-assign).
+        const engineer = await resolveEngineerFromAtm(supabase, atm);
+
+        if (!engineer) {
             return NextResponse.json(
                 { error: "No engineer assigned to this ATM location" },
                 { status: 404 }
             );
         }
 
-        // Look up engineer firebase_uid via email_id
-        const { data: engineerUser } = await supabase
-            .from("users")
-            .select("firebase_uid")
-            .eq("email", atm.email_id)
-            .eq("role", "employee")
-            .single();
-
         return NextResponse.json({
             success: true,
             data: {
                 engineer_name:    atm.engineer_name ?? null,
-                engineer_email:   atm.email_id,
-                engineer_contact: atm.contact_no    ?? null,
-                engineer_id:      engineerUser?.firebase_uid ?? null,
+                engineer_email:   engineer.email,
+                engineer_contact: atm.engineer_contact ?? null,
+                engineer_id:      engineer.firebase_uid,
                 method:           "atm_assigned",
             },
         });

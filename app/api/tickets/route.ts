@@ -98,23 +98,23 @@ export async function POST(request: Request) {
             let assignedName: string | null = null;
             let initialStatus = "open";
 
-            // Look up engineer from atm_locations using correct column names
+            // Look up engineer from atm_locations. Schema per migration 20260626000001:
+            //   engineer_name, engineer_contact, engineer_email.
+            // resolveEngineerFromAtm tries email first, then falls back to name match
+            // on users.full_name — so an Excel column titled just "engineer" still works.
             const { data: atm } = await supabase
                 .from("atm_locations")
-                .select("engineer_name, email_id, contact_no")
+                .select("atm_id, engineer_name, engineer_email, engineer_contact")
                 .eq("atm_id", ticket.atm_id)
-                .single();
+                .maybeSingle();
 
-            if (atm?.email_id) {
-                // Get engineer's firebase_uid from users table
-                const { data: engineer } = await supabase
-                    .from("users")
-                    .select("firebase_uid, full_name, email, employee_id, department, status, joined_at, is_online, last_seen, active_tickets, closed_tickets")
-                    .eq("email", atm.email_id)
-                    .eq("role", "employee")
-                    .single();
+            if (atm) {
+                const { resolveEngineerFromAtm } = await import(
+                    "../../src/lib/server/engineerLookup"
+                );
+                const engineer = await resolveEngineerFromAtm(supabase, atm);
 
-                if (engineer?.firebase_uid) {
+                if (engineer) {
                     assignedTo    = engineer.firebase_uid;
                     assignedEmail = engineer.email;
                     assignedName  = engineer.full_name;
