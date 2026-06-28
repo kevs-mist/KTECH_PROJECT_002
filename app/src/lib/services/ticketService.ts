@@ -96,7 +96,7 @@ export const ticketService = {
     async getAssignedEngineer(atmId: string): Promise<AtmEngineerPreview | null> {
         try {
             const result = await this.request<{ success: boolean; data: AtmEngineerPreview }>(
-                "/api/atm/nearest",
+                "/api/atm/nearest-engineer",
                 {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
