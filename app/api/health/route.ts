@@ -1,1 +1,73 @@
-import { NextResponse } from "next/server"; import { createAdminClient } from "../../../utils/supabase/admin";  export const dynamic = "force-dynamic";  type HealthCheck = "ok" | "error";  export async function GET() {     const startedAt = Date.now();     const checks: Record<string, HealthCheck> = {         database: "ok",         environment: "ok",     };      try {         const required = [             "NEXT_PUBLIC_SUPABASE_URL",             "NEXT_PUBLIC_SUPABASE_ANON_KEY",             "SUPABASE_SERVICE_ROLE_KEY",             "NEXT_PUBLIC_FIREBASE_PROJECT_ID",             "FIREBASE_PRIVATE_KEY",             "FIREBASE_CLIENT_EMAIL",         ];         const missing = required.filter((key) => !process.env[key]);         if (missing.length > 0) {             checks.environment = "error";             return NextResponse.json(                 {                     status: "unhealthy",                     checks,                     missing,                     timestamp: new Date().toISOString(),                 },                 { status: 503 }             );         }          const supabase = createAdminClient();         const { error } = await supabase             .from("users")             .select("firebase_uid", { count: "exact", head: true });          if (error) {             checks.database = "error";             return NextResponse.json(                 {                     status: "unhealthy",                     checks,                     timestamp: new Date().toISOString(),                 },                 { status: 503 }             );         }          return NextResponse.json({             status: "healthy",             version: process.env.NEXT_PUBLIC_APP_VERSION ?? process.env.VERCEL_GIT_COMMIT_SHA ?? "unknown",             uptimeSeconds: Math.round(process.uptime()),             latencyMs: Date.now() - startedAt,             checks,             timestamp: new Date().toISOString(),         });     } catch {         return NextResponse.json(             {                 status: "unhealthy",                 checks: { ...checks, database: "error" },                 timestamp: new Date().toISOString(),             },             { status: 503 }         );     } }
+import { NextResponse } from "next/server";
+import { createAdminClient } from "../../../utils/supabase/admin";
+
+export const dynamic = "force-dynamic";
+
+type HealthCheck = "ok" | "error";
+
+export async function GET() {
+  const startedAt = Date.now();
+  const checks: Record<string, HealthCheck> = {
+    database: "ok",
+    environment: "ok",
+  };
+
+  try {
+    const required = [
+      "NEXT_PUBLIC_SUPABASE_URL",
+      "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+      "SUPABASE_SERVICE_ROLE_KEY",
+      "NEXT_PUBLIC_FIREBASE_PROJECT_ID",
+      "FIREBASE_PRIVATE_KEY",
+      "FIREBASE_CLIENT_EMAIL",
+    ];
+    const missing = required.filter((key) => !process.env[key]);
+    if (missing.length > 0) {
+      checks.environment = "error";
+      return NextResponse.json(
+        {
+          status: "unhealthy",
+          checks,
+          missing,
+          timestamp: new Date().toISOString(),
+        },
+        { status: 503 }
+      );
+    }
+
+    const supabase = createAdminClient();
+    const { error } = await supabase
+      .from("users")
+      .select("firebase_uid", { count: "exact", head: true });
+
+    if (error) {
+      checks.database = "error";
+      return NextResponse.json(
+        {
+          status: "unhealthy",
+          checks,
+          timestamp: new Date().toISOString(),
+        },
+        { status: 503 }
+      );
+    }
+
+    return NextResponse.json({
+      status: "healthy",
+      version: process.env.NEXT_PUBLIC_APP_VERSION ?? process.env.VERCEL_GIT_COMMIT_SHA ?? "unknown",
+      uptimeSeconds: Math.round(process.uptime()),
+      latencyMs: Date.now() - startedAt,
+      checks,
+      timestamp: new Date().toISOString(),
+    });
+  } catch {
+    return NextResponse.json(
+      {
+        status: "unhealthy",
+        checks: { ...checks, database: "error" },
+        timestamp: new Date().toISOString(),
+      },
+      { status: 503 }
+    );
+  }
+}

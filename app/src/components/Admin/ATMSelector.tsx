@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { ticketService } from "../../lib/services/ticketService";
+import { parseJsonResponse } from "../../lib/apiClient";
 
 export interface ATMLocation {
   id: string;
@@ -54,12 +55,19 @@ export default function ATMSelector({ onATMSelect, onError }: ATMSelectorProps) 
         setLoading(true);
         const token = await ticketService.getIdToken();
         const response = await fetch('/api/atm/list', {
-            headers: { 'Authorization': `Bearer ${token}` }
+          method: 'GET',
+          headers: { 'Authorization': `Bearer ${token}` }
         });
-        const result = await response.json();
+        // parseJsonResponse never calls native Response.json() and surfaces
+        // a clear, labelled error on empty/malformed bodies (e.g. a 405 with
+        // an empty body used to throw "Unexpected end of JSON input").
+        const result = await parseJsonResponse<{ success: boolean; data?: ATMLocation[]; error?: string }>(
+          response,
+          '/api/atm/list'
+        );
 
         if (!result.success) throw new Error(result.error || 'Failed to fetch ATMs');
-        setAtms(result.data);
+        setAtms(result.data || []);
       } catch (error) {
         const errorMsg = error instanceof Error ? error.message : 'Unknown error';
         console.error('Error fetching ATMs:', errorMsg);
@@ -75,23 +83,26 @@ export default function ATMSelector({ onATMSelect, onError }: ATMSelectorProps) 
     setSelectedATM(atm);
     setSearch(`${atm.atm_id} - ${atm.bank_name}`);
     setIsOpen(false);
-    
+
     try {
       setFetchingEngineer(true);
       const token = await ticketService.getIdToken();
       const response = await fetch('/api/atm/nearest-engineer', {
         method: 'POST',
-        headers: { 
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({ atmId: atm.atm_id })
       });
 
-      const result = await response.json();
+      const result = await parseJsonResponse<{ success: boolean; data?: AssignedEngineer; error?: string }>(
+        response,
+        '/api/atm/nearest-engineer'
+      );
       if (!result.success) throw new Error(result.error || 'Failed to find engineer');
 
-      onATMSelect(atm, result.data);
+      onATMSelect(atm, result.data || null);
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : 'Unknown error';
       console.error('Error finding engineer:', errorMsg);
