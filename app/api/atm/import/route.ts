@@ -186,7 +186,8 @@ export async function POST(request: Request) {
               atm.latitude,
               atm.longitude,
               loc.lat,
-              lon.lon
+              loc.lon
+              
             );
             if (distance < minDistance) {
               minDistance = distance;
