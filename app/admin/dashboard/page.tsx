@@ -443,109 +443,37 @@ export default function AdminDashboard() {
                 </div>
             )}
             <main className="p-4 md:p-8 max-w-7xl mx-auto page-enter safe-top">
-                {/* Admin Requests Section */}
-                <div className="mt-8 p-6" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: '8px' }}>
-                    <div className="flex items-center justify-between mb-6">
-                        <h3 className="text-lg font-semibold" style={{ letterSpacing: '-0.02em' }}>Pending Admin Requests</h3>
-                        <span className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: 'var(--text-secondary)' }}>
-                            {requests.length} Pending
-                        </span>
-                    </div>
-                    
-                    {requestError && (
-                        <div className="mb-4 px-4 py-3 rounded-lg text-sm" style={{ background: 'var(--error-soft)', border: '1px solid var(--error)', color: 'var(--error)' }}>
-                            {requestError}
-                        </div>
-                    )}
-                    {requestSuccess && (
-                        <div className="mb-4 px-4 py-3 rounded-lg text-sm" style={{ background: 'var(--success-soft)', border: '1px solid var(--success)', color: 'var(--success)' }}>
-                            {requestSuccess}
-                        </div>
-                    )}
-                    
-                    {requestsLoading ? (
-                        <div className="text-sm" style={{ color: 'var(--text-secondary)' }}>Loading requests...</div>
-                    ) : requests.length === 0 ? (
-                        <div className="text-sm" style={{ color: 'var(--text-secondary)' }}>No pending admin requests</div>
-                    ) : (
-                        <div className="space-y-4">
-                            {requests.map((request) => (
-                                <div key={request.id} className="p-4 rounded-lg" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)' }}>
-                                    <div className="flex justify-between items-start mb-4">
-                                        <div>
-                                            <p className="font-semibold text-sm">{request.email}</p>
-                                            <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>Requested: {new Date(request.created_at).toLocaleDateString()}</p>
-                                        </div>
-                                        <span className="text-[11px] font-semibold uppercase tracking-widest px-2.5 py-0.5 rounded-full" style={{ background: 'var(--warning-soft)', color: 'var(--warning)', border: '1px solid var(--warning)30' }}>
-                                            Pending
-                                        </span>
-                                    </div>
-                                    
-                                    {showSecretInput[request.id] ? (
-                                        <div className="space-y-3">
-                                            <input
-                                                type="text"
-                                                placeholder="Enter secret code (min 4 chars)"
-                                                value={secretCode[request.id] || ''}
-                                                onChange={(e) => setSecretCode({ ...secretCode, [request.id]: e.target.value })}
-                                                className="w-full px-4 py-2 rounded-lg text-sm focus:outline-none focus:ring-0" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
-                                            />
-                                            <div className="flex gap-2">
-                                                <button
-                                                    onClick={() => handleApproveRequest(request.id)}
-                                                    className="px-4 py-2 rounded-lg text-xs font-semibold transition-all" style={{ background: 'var(--success)', color: 'white', borderRadius: '6px' }}
-                                                >
-                                                    Approve with Code
-                                                </button>
-                                                <button
-                                                    onClick={() => setShowSecretInput({ ...showSecretInput, [request.id]: false })}
-                                                    className="px-4 py-2 rounded-lg text-xs font-semibold transition-all" style={{ background: 'transparent', border: '1px solid var(--border)', color: 'var(--text-secondary)', borderRadius: '6px' }}
-                                                >
-                                                    Cancel
-                                                </button>
-                                            </div>
-                                        </div>
-                                    ) : (
-                                        <div className="flex gap-2">
-                                            <button
-                                                onClick={() => setShowSecretInput({ ...showSecretInput, [request.id]: true })}
-                                                className="px-4 py-2 rounded-lg text-xs font-semibold transition-all"
-                                                style={{ background: 'var(--success)', color: 'white', borderRadius: '6px' }}
-                                            >
-                                                Approve
-                                            </button>
-                                            <button
-                                                onClick={() => handleRejectRequest(request.id)}
-                                                className="px-4 py-2 rounded-lg text-xs font-semibold transition-all"
-                                                style={{ background: 'var(--error)', color: 'white', borderRadius: '6px' }}
-                                            >
-                                                Reject
-                                            </button>
-                                        </div>
-                                    )}
-                                </div>
-                            ))}
-                        </div>
-                    )}
+                {/* Pending Admin Requests Card */}
+                <div className="bg-[var(--bg-surface)] border border-[var(--border)] rounded-xl p-4 mb-6">
+                    <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--text-secondary)] mb-3">
+                        Pending Admin Requests
+                    </p>
+                    <p className="text-4xl font-bold text-[var(--text-primary)] leading-none mb-2">
+                        {requestsLoading ? '--' : requests.length}
+                    </p>
+                    <p className="text-[11px] text-[var(--text-muted)]">
+                        {requests.length === 0 ? 'No pending requests' : 'Require attention'}
+                    </p>
                 </div>
 
                 {/* Stats Grid */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-0 mt-6 md:mt-8" style={{ border: '1px solid var(--border)', borderRadius: '8px', overflow: 'hidden' }}>
+                <div className="grid grid-cols-2 gap-3 items-stretch">
                     {[
-                        { label: "Total System Tickets", value: stats.total, badge: "ALL TIME" },
-                        { label: "Unresolved Issues", value: stats.open, badge: "ACTIVE NOW" },
-                        { label: "Escalated Issues", value: stats.escalated, badge: "CRITICAL" },
-                        { label: "Closed Tickets", value: stats.closed, badge: "SOLVED" },
-                    ].map(({ label, value, badge }, index) => (
-                        <div key={label} className="p-4 md:p-6" style={{ borderRight: index < 3 ? '1px solid var(--border-subtle)' : 'none', borderBottom: index < 2 ? '1px solid var(--border-subtle)' : 'none' }}>
-                            <p className="text-[11px] font-semibold uppercase tracking-widest mb-2" style={{ color: 'var(--text-secondary)' }}>{label}</p>
-                            <div className="flex items-end justify-between">
-                                {isLoading
-                                    ? <div className="h-10 w-12 rounded" style={{ background: 'var(--bg-elevated)' }} />
-                                    : <p className="text-3xl font-semibold" style={{ letterSpacing: '-0.02em' }}>{value}</p>
-                                }
-                                <span className="text-[11px] font-semibold uppercase tracking-widest px-2 py-0.5 rounded-full" style={{ background: 'var(--bg-elevated)', color: 'var(--text-secondary)' }}>{badge}</span>
-                            </div>
+                        { label: "Total System Tickets", value: stats.total, sublabel: "All time" },
+                        { label: "Unresolved Issues", value: stats.open, sublabel: "Active now" },
+                        { label: "Escalated Issues", value: stats.escalated, sublabel: "Require attention" },
+                        { label: "Closed Tickets", value: stats.closed, sublabel: "Resolved" },
+                    ].map(({ label, value, sublabel }, index) => (
+                        <div key={label} className="bg-[var(--bg-surface)] border border-[var(--border)] rounded-xl p-4">
+                            <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--text-secondary)] mb-3">
+                                {label}
+                            </p>
+                            <p className="text-4xl font-bold text-[var(--text-primary)] leading-none mb-2">
+                                {isLoading ? '--' : value}
+                            </p>
+                            <p className="text-[11px] text-[var(--text-muted)]">
+                                {sublabel}
+                            </p>
                         </div>
                     ))}
                 </div>
@@ -563,11 +491,13 @@ export default function AdminDashboard() {
                 <div className="mt-12 flex flex-col gap-4 md:flex-row md:items-end justify-between">
                     <Notifications />
                     <div>
-                        <h3 className="text-xl font-semibold" style={{ letterSpacing: '-0.02em' }}>Operational Controls</h3>
-                        <p className="text-[11px] font-semibold uppercase tracking-widest mt-1" style={{ color: 'var(--text-secondary)' }}>Live Ticket Management & Deployment</p>
+                        <div className="mb-3">
+                            <h2 className="text-base font-semibold text-[var(--text-primary)] tracking-tight">Operational Controls</h2>
+                            <p className="text-xs text-[var(--text-muted)] mt-0.5">Live Ticket Management & Deployment</p>
+                        </div>
                     </div>
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-                        <button 
+                        <button
                             onClick={handleExportExcel}
                             className="px-6 py-2.5 font-semibold text-xs uppercase tracking-widest transition-all flex items-center gap-2"
                             style={{ background: 'transparent', border: '1px solid var(--border)', color: 'var(--text-secondary)', borderRadius: '6px' }}
@@ -577,7 +507,7 @@ export default function AdminDashboard() {
                             </svg>
                             Export Excel
                         </button>
-                        <button 
+                        <button
                             onClick={() => setIsImportModalOpen(true)}
                             className="px-6 py-2.5 font-semibold text-xs uppercase tracking-widest transition-all flex items-center gap-2"
                             style={{ background: 'transparent', border: '1px solid var(--border)', color: 'var(--text-secondary)', borderRadius: '6px' }}
@@ -587,7 +517,7 @@ export default function AdminDashboard() {
                             </svg>
                             Import Data
                         </button>
-                        <button 
+                        <button
                             onClick={() => setIsModalOpen(true)}
                             className="px-6 py-2.5 font-semibold text-xs uppercase tracking-widest transition-all"
                             style={{ background: 'var(--accent)', color: 'white', borderRadius: '6px' }}

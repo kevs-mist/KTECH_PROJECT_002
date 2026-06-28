@@ -10,7 +10,6 @@ import { ErrorHandler } from "../../src/lib/utils/errorHandler";
 import { sanitizeFileName } from "../../src/lib/utils/fileName";
 import TicketCheckInButton from "../components/TicketCheckInButton";
 import MobileNav from "../../src/components/common/MobileNav";
-import BottomNavigation from "../../src/components/common/BottomNavigation";
 import Notifications from "../../src/components/common/Notifications";
 
 export default function EmployeeDashboard() {
@@ -30,6 +29,7 @@ export default function EmployeeDashboard() {
     const [uploadProgress, setUploadProgress] = useState(0);
     const [actionError, setActionError] = useState<string | null>(null);
     const [fetchError, setFetchError] = useState<string | null>(null);
+    const [notificationPermission, setNotificationPermission] = useState(Notification.permission);
 
     // Reusable debounced fetch that updates state without resetting screen loading state
     const debouncedFetch = React.useMemo(
@@ -59,6 +59,11 @@ export default function EmployeeDashboard() {
             setIsLoading(false);
         }
     }, [user]);
+
+    const requestNotificationPermission = async () => {
+      const permission = await Notification.requestPermission();
+      setNotificationPermission(permission);
+    };
 
     useEffect(() => {
         if (user && role === "employee") {
@@ -314,35 +319,51 @@ export default function EmployeeDashboard() {
 
             <main className="max-w-7xl mx-auto space-y-6 md:space-y-8 sm:space-y-10">
                 {/* Stats */}
-                <div className="grid grid-cols-2 gap-0" style={{ border: '1px solid var(--border)', borderRadius: '8px', overflow: 'hidden' }}>
-                    <div className="p-4 md:p-6" style={{ borderRight: '1px solid var(--border-subtle)', borderBottom: '1px solid var(--border-subtle)' }}>
+                <div className="grid grid-cols-2 gap-3">
+                    <div className="bg-[var(--bg-surface)] border border-[var(--border)] rounded-xl p-4 md:p-6">
                         <p className="text-[11px] font-semibold uppercase tracking-widest mb-2" style={{ color: 'var(--text-secondary)' }}>My Tasks</p>
                         <p className="text-2xl sm:text-3xl font-black italic" style={{ color: 'var(--text-primary)' }}>{myTickets.length}</p>
                     </div>
-                    <div className="p-4 md:p-6" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderBottom: '1px solid var(--border-subtle)' }}>
+                    <div className="bg-[var(--bg-surface)] border border-[var(--border)] rounded-xl p-4 md:p-6">
                         <p className="text-[8px] sm:text-[9px] font-black uppercase tracking-widest mb-2" style={{ color: 'var(--text-tertiary)' }}>Available</p>
                         <p className="text-2xl sm:text-3xl font-black italic" style={{ color: 'var(--success)' }}>{availableTickets.length}</p>
                     </div>
-                    <div className="p-4 md:p-6" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRight: '1px solid var(--border-subtle)' }}>
+                    <div className="bg-[var(--bg-surface)] border border-[var(--border)] rounded-xl p-4 md:p-6">
                         <p className="text-[8px] sm:text-[9px] font-black uppercase tracking-widest mb-2" style={{ color: 'var(--text-tertiary)' }}>Resolved</p>
                         <p className="text-2xl sm:text-3xl font-black italic" style={{ color: 'var(--text-primary)' }}>
                             {tickets.filter(t => t.assigned_to === user?.uid && t.status === 'closed').length}
                         </p>
                     </div>
-                    <div className="p-4 md:p-6" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)' }}>
+                    <div className="bg-[var(--bg-surface)] border border-[var(--border)] rounded-xl p-4 md:p-6">
                         <p className="text-[8px] sm:text-[9px] font-black uppercase tracking-widest mb-2" style={{ color: 'var(--text-tertiary)' }}>In Progress</p>
                         <p className="text-2xl sm:text-3xl font-black italic" style={{ color: 'var(--text-primary)' }}>
                             {myTickets.filter(t => t.status === 'in_progress').length}
                         </p>
                     </div>
                 </div>
-
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
+                {notificationPermission !== "granted" && (
+                  <div className="flex items-center justify-between bg-[var(--accent-soft)] border border-[var(--accent)]/20 rounded-xl px-4 py-3 mb-4">
+                    <div>
+                      <p className="text-sm font-medium text-[var(--text-primary)]">
+                        Enable notifications
+                      </p>
+                      <p className="text-xs text-[var(--text-secondary)]">
+                        Get alerted on new ticket assignments
+                      </p>
+                    </div>
+                    <button
+                      onClick={requestNotificationPermission}
+                      className="text-xs font-semibold text-[var(--accent)] bg-[var(--accent)]/10 px-3 py-1.5 rounded-lg whitespace-nowrap"
+                    >
+                      Enable
+                    </button>
+                  </div>
+                )}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
                     {/* Active */}
                     <section className="space-y-6">
                         <div className="flex items-center justify-between">
-                            <h2 className="text-lg font-semibold" style={{ letterSpacing: '-0.02em' }}>Active Assignments</h2>
-                            <span className="w-8 h-1 rounded-full" style={{ background: 'var(--accent)' }}></span>
+                            <h2 className="text-base font-semibold text-[var(--text-primary)] tracking-tight">Active Assignments</h2>
                         </div>
 
                         <div className="space-y-4">
@@ -381,8 +402,19 @@ export default function EmployeeDashboard() {
                                     </div>
                                 ))
                             ) : myTickets.length === 0 ? (
-                                <div className="p-10 sm:p-16 text-center rounded-lg" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}>
-                                    <p className="text-xs font-semibold uppercase tracking-widest italic" style={{ color: 'var(--text-secondary)' }}>No active deployments</p>
+                                <div className="flex flex-col items-center justify-center py-10 px-4 text-center">
+                                  <div className="w-10 h-10 rounded-full bg-[var(--bg-elevated)] flex items-center justify-center mb-3">
+                                    {/* Ticket/clipboard icon */}
+                                    <svg className="w-5 h-5 text-[var(--text-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                    </svg>
+                                  </div>
+                                  <p className="text-sm font-medium text-[var(--text-secondary)]">
+                                    No active assignments
+                                  </p>
+                                  <p className="text-xs text-[var(--text-muted)] mt-1">
+                                    New tickets will appear here when assigned
+                                  </p>
                                 </div>
                             ) : (
                                 myTickets.map(ticket => {
@@ -476,8 +508,7 @@ export default function EmployeeDashboard() {
                     {/* Open Pool */}
                     <section className="space-y-6">
                         <div className="flex items-center justify-between">
-                            <h2 className="text-lg font-semibold" style={{ letterSpacing: '-0.02em' }}>Open Deployment Pool</h2>
-                            <span className="w-8 h-1 rounded-full" style={{ background: 'var(--warning)' }}></span>
+                            <h2 className="text-base font-semibold text-[var(--text-primary)] tracking-tight">Open Deployment Pool</h2>
                         </div>
 
                         <div className="space-y-4">
@@ -516,8 +547,19 @@ export default function EmployeeDashboard() {
                                     </div>
                                 ))
                             ) : availableTickets.length === 0 ? (
-                                <div className="p-10 sm:p-16 text-center rounded-lg" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}>
-                                    <p className="text-xs font-semibold uppercase tracking-widest italic" style={{ color: 'var(--text-secondary)' }}>All sites operational</p>
+                                <div className="flex flex-col items-center justify-center py-10 px-4 text-center">
+                                  <div className="w-10 h-10 rounded-full bg-[var(--bg-elevated)] flex items-center justify-center mb-3">
+                                    {/* Checkmark circle icon */}
+                                    <svg className="w-5 h-5 text-[var(--text-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                                    </svg>
+                                  </div>
+                                  <p className="text-sm font-medium text-[var(--text-secondary)]">
+                                    All sites operational
+                                  </p>
+                                  <p className="text-xs text-[var(--text-muted)] mt-1">
+                                    No pending deployments at the moment
+                                  </p>
                                 </div>
                             ) : (
                                 availableTickets.map(ticket => (
@@ -601,10 +643,9 @@ export default function EmployeeDashboard() {
                 <section className="space-y-6 pt-10">
                     <div className="flex items-center justify-between">
                         <div className="space-y-1">
-                            <h2 className="text-xl font-black italic uppercase tracking-tight" style={{ color: 'var(--text-primary)' }}>Resolved History</h2>
+                            <h2 className="text-base font-semibold text-[var(--text-primary)] tracking-tight">Resolved History</h2>
                             <p className="text-[10px] uppercase font-semibold tracking-widest" style={{ color: 'var(--text-tertiary)' }}>Audit trail of completed deployments</p>
                         </div>
-                        <span className="w-8 h-1 rounded-full" style={{ background: 'var(--border)' }}></span>
                     </div>
 
                     <div className="rounded-[2rem] overflow-hidden shadow-sm" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}>
@@ -983,7 +1024,6 @@ export default function EmployeeDashboard() {
                 </div>
             )}
 
-            <BottomNavigation />
         </div>
     );
 }

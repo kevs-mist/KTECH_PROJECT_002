@@ -140,7 +140,7 @@ export async function verifyRequestUser(token: string): Promise<VerifiedUser> {
     return {
         uid: decodedToken.uid,
         email: decodedToken.email ?? null,
-        role: "user",
+        role: userResult.data?.role ?? "user",
     };
 }
 

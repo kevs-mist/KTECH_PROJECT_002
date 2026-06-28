@@ -84,29 +84,29 @@ export default function Notifications() {
     }
   }, [user]);
 
-  const fetchNotifications = async () => {
-    try {
-      const data = await notificationService.getNotifications();
-      setNotifications(data);
-      setUnreadCount(data.filter((n: NotificationType) => !n.is_read).length);
-
-      // Show browser notification for new unread notifications
-      if (Notification.permission === "granted" && data.some((n: NotificationType) => !n.is_read)) {
-        const newNotifications = data.filter((n: NotificationType) => !n.is_read).slice(0, 3);
-        newNotifications.forEach((notif: NotificationType) => {
-          new Notification(notif.title, {
-            body: notif.message,
-            icon: "/favicon.ico",
-            tag: notif.id
-          });
-        });
-      }
-    } catch (err) {
-      console.error("Failed to fetch notifications:", err);
-    }
-  };
-
   useEffect(() => {
+    const fetchNotifications = async () => {
+      try {
+        const data = await notificationService.getNotifications();
+        setNotifications(data);
+        setUnreadCount(data.filter((n: NotificationType) => !n.is_read).length);
+
+        // Show browser notification for new unread notifications
+        if (Notification.permission === "granted" && data.some((n: NotificationType) => !n.is_read)) {
+          const newNotifications = data.filter((n: NotificationType) => !n.is_read).slice(0, 3);
+          newNotifications.forEach((notif: NotificationType) => {
+            new Notification(notif.title, {
+              body: notif.message,
+              icon: "/favicon.ico",
+              tag: notif.id
+            });
+          });
+        }
+      } catch (err) {
+        console.error("Failed to fetch notifications:", err);
+      }
+    };
+
     fetchNotifications();
 
     // Real-time listener for new notifications
@@ -118,9 +118,9 @@ export default function Notifications() {
       .channel(`notifications-${uid}`)
       .on(
         'postgres_changes',
-        { 
-          event: '*', 
-          schema: 'public', 
+        {
+          event: '*',
+          schema: 'public',
           table: 'notifications',
           filter: `recipient_id=eq.${uid}`
         },
