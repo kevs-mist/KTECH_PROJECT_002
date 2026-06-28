@@ -6,6 +6,7 @@ import {
   jsonError,
   rateLimitResponse,
   verifyRequestUser,
+  requireVerifiedUser,
 } from "../../../src/lib/server/apiSecurity";
 
 export const dynamic = 'force-dynamic';
@@ -23,7 +24,7 @@ export async function GET(request: NextRequest, context: { params: Promise<{ atm
     });
     if (!limit.success) return rateLimitResponse(limit.resetAt);
 
-    const user = await verifyRequestUser(request);
+    const user = await requireVerifiedUser(request);
     if (user.role !== "employee") {
       return NextResponse.json({ error: "Forbidden: Employee access required" }, { status: 403 });
     }
