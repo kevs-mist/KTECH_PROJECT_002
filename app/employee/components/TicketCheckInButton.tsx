@@ -67,7 +67,7 @@ export default function TicketCheckInButton({ ticket, onCheckInSuccess }: Ticket
                     handleCheckIn();
                 }}
                 disabled={isLoading}
-                className={`w-full py-4 rounded-2xl text-[11px] font-black uppercase tracking-widest text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 transition-all shadow-sm ${isLoading ? "opacity-50 cursor-not-allowed" : "hover:scale-[1.02] active:scale-95"}`}
+                className={`w-full py-4 min-h-[52px] rounded-2xl text-[11px] font-black uppercase tracking-widest text-emerald-700 bg-emerald-50 border border-emerald-200 transition-all shadow-sm ${isLoading ? "opacity-50 cursor-not-allowed" : "active:scale-95"}`}
             >
                 {isLoading ? "Checking in..." : "📍 Check-in to Start"}
             </button>

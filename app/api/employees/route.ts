@@ -1,46 +1,65 @@
 import { NextResponse } from "next/server";
+import {
+  getBearerToken,
+  verifyRequestUser,
+} from "../../src/lib/server/apiSecurity";
 import { getEmployeesAction, setEmployeeOnlineStatusAction } from "../../src/lib/actions/employeeActions";
 
-function getBearerToken(request: Request) {
-    const authHeader = request.headers.get("authorization");
-    return authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
-}
-
-function getErrorMessage(error: unknown) {
-    return error instanceof Error ? error.message : "Employee request failed";
-}
-
-function requireToken(request: Request) {
-    const token = getBearerToken(request);
-    if (!token) throw new Error("Unauthorized: Please log in again.");
-    return token;
-}
-
 export async function GET(request: Request) {
-    try {
-        const token = requireToken(request);
-        return NextResponse.json(await getEmployeesAction(token));
-    } catch (error: unknown) {
-        const message = getErrorMessage(error);
-        const status = message.toLowerCase().includes("unauthorized") ? 401 : 500;
-        return NextResponse.json({ error: message }, { status });
+  try {
+    const token = getBearerToken(request);
+    if (!token) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+    const user = await verifyRequestUser(token);
+
+    if (user.role !== "admin") {
+      return NextResponse.json({ error: "Forbidden: Admin access required" }, { status: 403 });
+    }
+
+    return NextResponse.json(await getEmployeesAction(token));
+  } catch (error: unknown) {
+    // Handle errors from verifyRequestUser or getEmployeesAction
+    const message = error instanceof Error ? error.message : "Internal server error";
+    const status = message.toLowerCase().includes("unauthorized")
+      ? 401
+      : message.toLowerCase().includes("forbidden")
+        ? 403
+        : 500;
+    return NextResponse.json({ error: message }, { status });
+  }
 }
 
 export async function POST(request: Request) {
-    try {
-        const token = requireToken(request);
-        const body = await request.json();
-
-        if (body.operation !== "online-status") {
-            return NextResponse.json({ error: "Unknown employee operation" }, { status: 400 });
-        }
-
-        await setEmployeeOnlineStatusAction(token, !!body.isOnline);
-        return NextResponse.json({ success: true });
-    } catch (error: unknown) {
-        const message = getErrorMessage(error);
-        const status = message.toLowerCase().includes("unauthorized") ? 401 : 500;
-        return NextResponse.json({ error: message }, { status });
+  try {
+    if (request.method !== "POST") {
+      return NextResponse.json({ error: "Method not allowed" }, { status: 405 });
     }
+
+    const token = getBearerToken(request);
+    if (!token) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const user = await verifyRequestUser(token);
+
+    if (user.role !== "employee") {
+      return NextResponse.json({ error: "Forbidden: Employee access required" }, { status: 403 });
+    }
+
+    const body = await request.json();
+    if (body.operation !== "online-status") {
+      return NextResponse.json({ error: "Unknown employee operation" }, { status: 400 });
+    }
+
+    await setEmployeeOnlineStatusAction(token, !!body.isOnline);
+    return NextResponse.json({ success: true });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Internal server error";
+    const status = message.toLowerCase().includes("unauthorized")
+      ? 401
+      : message.toLowerCase().includes("forbidden")
+        ? 403
+        : 500;
+    return NextResponse.json({ error: message }, { status });
+  }
 }

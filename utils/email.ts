@@ -1,6 +1,7 @@
 import nodemailer from "nodemailer";
 import { EmployeeProfile } from "../app/src/lib/services/employeeService";
 import { Ticket } from "../app/src/lib/services/ticketService";
+import { resend } from "./email/resend";
 
 // ─── Transporter ──────────────────────────────────────────────────────────────
 // Reads credentials from environment variables — never hardcode these.
@@ -28,12 +29,66 @@ export async function sendEmail(
     subject: string,
     html: string
 ): Promise<void> {
-    await transporter.sendMail({
-        from: process.env.SMTP_FROM ?? process.env.SMTP_USER,
-        to,
-        subject,
-        html,
-    });
+    // Validate email format before sending
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(to)) {
+        console.error("Invalid email address:", to);
+        throw new Error("Invalid email address format");
+    }
+
+    console.log("Attempting to send email to:", to, "subject:", subject);
+    
+    // Check if SMTP or Resend credentials are configured
+    const hasSmtpConfig = process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS;
+    const hasResendConfig = !!process.env.RESEND_API_KEY;
+
+    console.log("SMTP configured:", hasSmtpConfig, "Resend configured:", hasResendConfig);
+
+    // 1. Try Resend first if API Key is present
+    if (hasResendConfig) {
+        try {
+            const fromEmail = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
+            const result = await resend.emails.send({
+                from: fromEmail,
+                to,
+                subject,
+                html,
+            });
+            if (result.error) {
+                throw new Error(result.error.message);
+            }
+            console.log("Email sent successfully via Resend");
+            return;
+        } catch (resendError) {
+            console.error("Resend email failed:", resendError);
+            if (!hasSmtpConfig) {
+                throw new Error("Failed to send email via Resend: " + (resendError as Error).message);
+            }
+            console.log("Attempting fallback to SMTP...");
+        }
+    }
+
+    // 2. Try SMTP if configured (or as fallback)
+    if (hasSmtpConfig) {
+        try {
+            const fromEmail = process.env.RESEND_FROM_EMAIL || 'KTech CRM <notifications@ktechcrm.dev>';
+            await transporter.sendMail({
+                from: process.env.SMTP_FROM ?? fromEmail,
+                to,
+                subject,
+                html,
+            });
+            console.log("Email sent successfully via SMTP");
+            return;
+        } catch (smtpError) {
+            console.error("SMTP email failed:", smtpError);
+            throw new Error("Failed to send email via SMTP: " + (smtpError as Error).message);
+        }
+    }
+
+    // 3. No email services configured
+    console.error("Neither Resend nor SMTP is configured. Please check environment variables.");
+    throw new Error("Email service is not configured. Please set RESEND_API_KEY or SMTP variables.");
 }
 
 // ─── HTML Layout ──────────────────────────────────────────────────────────────

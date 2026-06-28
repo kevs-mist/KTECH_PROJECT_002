@@ -1,9 +1,6 @@
 import { NextResponse } from "next/server";
 import { adminAuth } from "../../../../utils/firebase/admin";
-
-function getErrorMessage(error: unknown) {
-    return error instanceof Error ? error.message : "Failed to generate password reset link";
-}
+import { getAppBaseUrl } from "../../../src/lib/server/apiSecurity";
 
 export async function POST(request: Request) {
     try {
@@ -23,7 +20,7 @@ export async function POST(request: Request) {
             const urlObj = new URL(rawLink);
             const oobCode = urlObj.searchParams.get("oobCode");
             if (oobCode) {
-                link = `http://localhost:3000/reset-password?oobCode=${oobCode}`;
+                link = `${getAppBaseUrl()}/reset-password?oobCode=${oobCode}`;
             }
         } catch {
             // Keep Firebase's raw link if parsing fails.
@@ -31,6 +28,7 @@ export async function POST(request: Request) {
 
         return NextResponse.json({ success: true, link });
     } catch (error: unknown) {
-        return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 });
+        console.error("[/api/auth/password-reset-link] Failed to generate reset link:", error);
+        return NextResponse.json({ error: "Failed to generate reset link" }, { status: 500 });
     }
 }

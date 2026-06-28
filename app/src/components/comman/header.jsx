@@ -21,7 +21,7 @@ export default function Header() {
         <div className="flex items-center justify-between h-20">
           {/* Logo */}
           <Link href={user ? (user.email?.includes("admin") ? "/admin/dashboard" : "/dashboard") : "/login"} className="flex items-center gap-3 group">
-            <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-500/20 group-hover:shadow-emerald-500/40 transition-all duration-300 group-hover:scale-105">
+            <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-500/20 transition-all duration-300">
               <svg className="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
               </svg>
@@ -39,7 +39,7 @@ export default function Header() {
             <nav className="hidden md:flex items-center gap-6">
               <Link
                 href={user.email?.includes("admin") ? "/admin/dashboard" : "/dashboard"}
-                className="text-sm font-medium text-slate-300 hover:text-white transition-colors duration-200"
+                className="text-sm font-medium text-slate-300 transition-colors duration-200"
               >
                 Dashboard
               </Link>
@@ -52,7 +52,7 @@ export default function Header() {
                 </div>
                 <button
                   onClick={handleLogout}
-                  className="bg-white/10 hover:bg-white/20 text-white px-5 py-2.5 rounded-xl text-xs font-bold transition-all duration-200 border border-white/10 hover:border-white/20"
+                  className="bg-white/10 text-white px-5 py-2.5 rounded-xl text-xs font-bold transition-all duration-200 border border-white/10"
                 >
                   Sign Out
                 </button>
@@ -64,7 +64,7 @@ export default function Header() {
           {user && (
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className="md:hidden p-2 rounded-lg text-slate-300 hover:text-white hover:bg-white/10 transition-colors"
+              className="md:hidden p-2 rounded-lg text-slate-300 transition-colors"
             >
               <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 {isMenuOpen ? (
@@ -83,7 +83,7 @@ export default function Header() {
             <nav className="flex flex-col gap-4">
               <Link
                 href={user.email?.includes("admin") ? "/admin/dashboard" : "/dashboard"}
-                className="text-sm font-medium text-slate-300 hover:text-white transition-colors py-2"
+                className="text-sm font-medium text-slate-300 transition-colors py-2"
                 onClick={() => setIsMenuOpen(false)}
               >
                 Dashboard
@@ -95,7 +95,7 @@ export default function Header() {
                     handleLogout();
                     setIsMenuOpen(false);
                   }}
-                  className="w-full bg-white/10 hover:bg-white/20 text-white px-5 py-2.5 rounded-xl text-xs font-bold transition-all duration-200 border border-white/10"
+                  className="w-full bg-white/10 text-white px-5 py-2.5 rounded-xl text-xs font-bold transition-all duration-200 border border-white/10"
                 >
                   Sign Out
                 </button>

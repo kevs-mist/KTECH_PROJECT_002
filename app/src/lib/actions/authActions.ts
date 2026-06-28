@@ -1,6 +1,7 @@
 import { createAdminClient } from "../../../../utils/supabase/admin";
 
 import { adminAuth } from "../../../../utils/firebase/admin";
+import { getAppBaseUrl } from "../server/apiSecurity";
 import bcrypt from "bcryptjs";
 
 export type UserRole = "admin" | "employee" | "user";
@@ -136,7 +137,7 @@ export async function generatePasswordResetLinkAction(email: string) {
             const urlObj = new URL(rawLink);
             const oobCode = urlObj.searchParams.get("oobCode");
             if (oobCode) {
-                customLink = `http://localhost:3000/reset-password?oobCode=${oobCode}`;
+                customLink = `${getAppBaseUrl()}/reset-password?oobCode=${oobCode}`;
             }
         } catch {
             // Ignore parse errors, fallback to raw link
@@ -157,3 +158,4 @@ export async function generatePasswordResetLinkAction(email: string) {
         throw new Error(getErrorMessage(error) || "Failed to generate password reset link.");
     }
 }
+

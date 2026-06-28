@@ -56,21 +56,22 @@ export default function Login() {
     const displayInfo = infoMessage;
 
     return (
-        <div className="login-container min-h-screen flex items-center justify-center p-4 page-enter" style={{ background: 'var(--bg-base)' }}>
-            <div className="login-box p-8 md:p-10 max-w-md w-full relative overflow-hidden" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: '12px' }}>
-                
+        <div className="login-container min-h-screen flex items-center justify-center p-4 page-enter safe-top" style={{ background: 'var(--bg-base)' }}>
+            <div className="login-box p-6 md:p-8 md:p-10 max-w-md w-full relative overflow-hidden" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: '12px' }}>
+
                 <div className="absolute top-0 left-0 w-full h-1" style={{ background: 'var(--accent)' }}></div>
 
-                <div className="login-header mb-8 flex flex-col items-center">
-                    <img 
-                        src="/images/prime_services_logo.png?v=1" 
-                        alt="Prime Services ATM Services & Maintenance" 
-                        className="w-20 h-20 object-contain mb-4"
+                <div className="login-header mb-6 md:mb-8 flex flex-col items-center">
+                    <img
+                        src="/images/prime_services_logo.png?v=1"
+                        alt="Prime Services ATM Services & Maintenance"
+                        loading="lazy"
+                        className="w-16 h-16 md:w-20 md:h-20 object-contain mb-4"
                     />
-                    <h1 className="text-2xl font-semibold text-center" style={{ letterSpacing: '-0.02em' }}>
+                    <h1 className="text-xl md:text-2xl font-semibold text-center" style={{ letterSpacing: '-0.02em' }}>
                         Staff Portal
                     </h1>
-                    <p className="text-center text-sm mt-2 font-mono" style={{ color: 'var(--text-secondary)' }}>
+                    <p className="text-center text-xs md:text-sm mt-2 font-mono" style={{ color: 'var(--text-secondary)' }}>
                         FIELD OPERATIONS LOGIN
                     </p>
                 </div>
@@ -96,7 +97,7 @@ export default function Login() {
                                 type="email"
                                 value={username}
                                 onChange={(e) => setUsername(e.target.value)}
-                                className="w-full rounded-lg px-4 py-3 outline-none focus:ring-0 transition-all"
+                                className="w-full rounded-lg px-4 py-3 min-h-[48px] outline-none focus:ring-0 transition-all text-sm"
                                 style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
                                 placeholder="name@prime.com"
                                 required
@@ -112,7 +113,7 @@ export default function Login() {
                                 type="password"
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
-                                className="w-full rounded-lg px-4 py-3 outline-none focus:ring-0 transition-all"
+                                className="w-full rounded-lg px-4 py-3 min-h-[48px] outline-none focus:ring-0 transition-all text-sm"
                                 style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
                                 placeholder="••••••••"
                                 required
@@ -130,7 +131,7 @@ export default function Login() {
                                     type="text"
                                     value={otp}
                                     onChange={(e) => setOtp(e.target.value)}
-                                    className="w-full rounded-lg px-4 py-3 outline-none focus:ring-0 transition-all font-medium tracking-widest"
+                                    className="w-full rounded-lg px-4 py-3 min-h-[48px] outline-none focus:ring-0 transition-all font-medium tracking-widest text-sm"
                                     style={{ background: 'var(--bg-elevated)', border: '1px solid var(--accent)', color: 'var(--text-primary)' }}
                                     placeholder="Enter 6-digit code"
                                     required={isAdminMode}
@@ -145,19 +146,19 @@ export default function Login() {
                         <button
                             type="submit"
                             disabled={isLoading}
-                            className="w-full mt-2 py-3.5 font-semibold transition-all"
+                            className="w-full mt-2 py-4 min-h-[52px] font-semibold transition-all"
                             style={{ background: isLoading ? 'var(--text-muted)' : 'var(--accent)', color: 'white', borderRadius: '6px' }}
                         >
                             {isLoading ? "Authenticating..." : awaitingOtp ? "Verify Security Code" : isAdminMode ? "Sign In as Admin" : "Sign In & Access Workspace"}
                         </button>
                     </form>
 
-                    <div className="mt-8 pt-6 flex flex-col gap-4 text-center" style={{ borderTop: '1px solid var(--border-subtle)' }}>
+                    <div className="mt-6 md:mt-8 pt-6 flex flex-col gap-4 text-center" style={{ borderTop: '1px solid var(--border-subtle)' }}>
                         {!isAdminMode && (
-                            <button 
-                                type="button" 
+                            <button
+                                type="button"
                                 onClick={() => setIsAdminMode(true)}
-                                className="text-[11px] font-semibold uppercase tracking-widest transition-colors"
+                                className="text-[11px] font-semibold uppercase tracking-widest transition-colors py-2 min-h-[44px]"
                                 style={{ color: 'var(--text-secondary)' }}
                             >
                                 Enter as Administrator

@@ -31,6 +31,17 @@ export function getClientIp(request: Request): string {
     return forwardedFor || request.headers.get("x-real-ip") || "unknown";
 }
 
+export function getAppBaseUrl(request?: Request): string {
+    if (process.env.APP_URL) return process.env.APP_URL.replace(/\/$/, "");
+    if (process.env.NEXT_PUBLIC_APP_URL) return process.env.NEXT_PUBLIC_APP_URL.replace(/\/$/, "");
+    if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
+    if (request) {
+        const url = new URL(request.url);
+        return `${url.protocol}//${url.host}`;
+    }
+    return "http://localhost:3000";
+}
+
 export function errorMessage(error: unknown, fallback = "Request failed"): string {
     if (error instanceof Error) return error.message;
     if (typeof error === "object" && error !== null && "message" in error && typeof (error as any).message === "string") {
@@ -170,3 +181,4 @@ export async function logAuditEvent(params: {
         console.error("Audit log write failed:", errorMessage(error));
     }
 }
+

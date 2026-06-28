@@ -144,7 +144,7 @@ export default function ForgotPassword() {
                                 <button
                                     type="button"
                                     onClick={() => router.push("/login")}
-                                    className="text-xs text-blue-600 hover:underline mt-2 font-bold uppercase tracking-wider"
+                                    className="text-xs text-blue-600 mt-2 font-bold uppercase tracking-wider"
                                 >
                                     Go to Login Now
                                 </button>
@@ -185,12 +185,12 @@ export default function ForgotPassword() {
                                     <button
                                         type="submit"
                                         disabled={isLoading}
-                                        className={`w-full text-white py-2.5 rounded font-medium shadow-sm transition ${isLoading ? "bg-blue-400 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700 active:scale-[0.98]"}`}
+                                        className={`w-full text-white py-2.5 rounded font-medium shadow-sm transition ${isLoading ? "bg-blue-400 cursor-not-allowed" : "bg-blue-600 active:scale-[0.98]"}`}
                                     >
                                         {isLoading ? "Sending..." : "Send Reset Link"}
                                     </button>
                                     <div className="text-center text-sm mt-4 text-slate-600">
-                                        <p>Remember your password? <a href="/login" className="text-blue-600 hover:underline">Log in</a></p>
+                                        <p>Remember your password? <a href="/login" className="text-blue-600">Log in</a></p>
                                     </div>
                                 </form>
                             ) : (
@@ -227,7 +227,7 @@ export default function ForgotPassword() {
                                     <button
                                         type="submit"
                                         disabled={isLoading}
-                                        className={`w-full text-white py-2.5 rounded font-medium shadow-sm transition ${isLoading ? "bg-blue-400 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700 active:scale-[0.98]"}`}
+                                        className={`w-full text-white py-2.5 rounded font-medium shadow-sm transition ${isLoading ? "bg-blue-400 cursor-not-allowed" : "bg-blue-600 active:scale-[0.98]"}`}
                                     >
                                         {isLoading ? "Resetting..." : "Save New Password"}
                                     </button>

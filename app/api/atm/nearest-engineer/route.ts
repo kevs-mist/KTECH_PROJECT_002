@@ -6,10 +6,12 @@ import {
   getClientIp,
   jsonError,
   rateLimitResponse,
-  requireVerifiedUser,
+  getBearerToken,
+  verifyRequestUser,
 } from "../../../src/lib/server/apiSecurity";
 
- export const dynamic = 'force-dynamic';
+export const dynamic = 'force-dynamic';
+
 function calculateDistance(
   lat1: number,
   lon1: number,
@@ -31,6 +33,10 @@ function calculateDistance(
 
 export async function POST(request: Request) {
   try {
+    if (request.method !== "POST") {
+      return NextResponse.json({ error: "Method not allowed" }, { status: 405 });
+    }
+
     assertSameOrigin(request);
 
     const limit = checkRateLimit({
@@ -40,7 +46,15 @@ export async function POST(request: Request) {
     });
     if (!limit.success) return rateLimitResponse(limit.resetAt);
 
-    await requireVerifiedUser(request);
+    const token = getBearerToken(request);
+    if (!token) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const user = await verifyRequestUser(token);
+    if (user.role !== "employee") {
+      return NextResponse.json({ error: "Forbidden: Employee access required" }, { status: 403 });
+    }
+
     const supabase = createAdminClient();
     const { atmId } = await request.json();
 
@@ -59,7 +73,6 @@ export async function POST(request: Request) {
     }
 
     if (!atm.latitude || !atm.longitude) {
-      // Try to find engineer by email to get their firebase_uid
       let engineerId: string | undefined;
       if (atm.engineer_email) {
         const { data: engineerUser } = await supabase
@@ -70,7 +83,7 @@ export async function POST(request: Request) {
           .single();
         engineerId = engineerUser?.firebase_uid;
       }
-      
+
       return NextResponse.json({
         success: true,
         data: {
@@ -78,8 +91,8 @@ export async function POST(request: Request) {
           engineer_contact: atm.engineer_contact,
           engineer_email: atm.engineer_email,
           engineer_id: engineerId,
-          method: "master_data"
-        }
+          method: "master_data",
+        },
       });
     }
 
@@ -89,7 +102,6 @@ export async function POST(request: Request) {
       .eq("role", "employee");
 
     if (!users || users.length === 0) {
-      // Try to find engineer by email to get their firebase_uid
       let engineerId: string | undefined;
       if (atm.engineer_email) {
         const { data: engineerUser } = await supabase
@@ -100,7 +112,7 @@ export async function POST(request: Request) {
           .single();
         engineerId = engineerUser?.firebase_uid;
       }
-      
+
       return NextResponse.json({
         success: true,
         data: {
@@ -108,8 +120,8 @@ export async function POST(request: Request) {
           engineer_contact: atm.engineer_contact,
           engineer_email: atm.engineer_email,
           engineer_id: engineerId,
-          method: "master_data"
-        }
+          method: "master_data",
+        },
       });
     }
 
@@ -118,7 +130,7 @@ export async function POST(request: Request) {
       .select("employee_id, latitude, longitude")
       .order("checked_in_at", { ascending: false });
 
-    const latestLocations = new Map<string, { lat: number, lon: number }>();
+    const latestLocations = new Map<string, { lat: number; lon: number }>();
     if (checkIns) {
       for (const ci of checkIns) {
         if (!latestLocations.has(ci.employee_id)) {
@@ -149,12 +161,11 @@ export async function POST(request: Request) {
           engineer_id: nearestEngineer.firebase_uid,
           engineer_email: nearestEngineer.email,
           distance_km: minDistance.toFixed(2),
-          method: "distance_based"
-        }
+          method: "distance_based",
+        },
       });
     }
 
-    // Try to find engineer by email to get their firebase_uid
     let engineerId: string | undefined;
     if (atm.engineer_email) {
       const { data: engineerUser } = await supabase
@@ -165,7 +176,7 @@ export async function POST(request: Request) {
         .single();
       engineerId = engineerUser?.firebase_uid;
     }
-    
+
     return NextResponse.json({
       success: true,
       data: {
@@ -173,8 +184,8 @@ export async function POST(request: Request) {
         engineer_contact: atm.engineer_contact,
         engineer_email: atm.engineer_email,
         engineer_id: engineerId,
-        method: "master_data"
-      }
+        method: "master_data",
+      },
     });
   } catch (error: unknown) {
     return jsonError(error, "Failed to find nearest engineer");

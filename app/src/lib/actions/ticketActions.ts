@@ -12,7 +12,7 @@ import { notifyOnlineEmployeesAction, createNotificationAction } from "./notific
 // Whitelist and Validation Schemas
 const ticketCreateSchema = z.object({
     title: z.string().trim().min(5, "Title too short").max(200),
-    description: z.string().min(10, "Description must be at least 10 characters"),
+    description: z.string().min(3, "Description must be at least 3 characters"),
     issue_type: z.string().min(2, "Issue type is required"),
     atm_id: z.string().min(3, "ATM ID is required"),
     atm_location_id: z.string().uuid().optional(),
@@ -183,20 +183,25 @@ export async function createTicketAction(idToken: string, ticket: Ticket) {
         metadata: { status: initialStatus, assignedTo: sanitizedData.assigned_to ?? null },
     });
 
-    // Send ticket verification email
-    try {
-        const { data: userData } = await supabase
-            .from("users")
-            .select("email, full_name")
-            .eq("firebase_uid", uid)
-            .single();
-        
-        if (userData?.email) {
-            await sendTicketVerification(data, userData.email, userData.full_name);
+    // Send email to assigned engineer (employee) - NOT to admin
+    if (sanitizedData.assigned_to) {
+        try {
+            const { data: engineerData, error: engineerError } = await supabase
+                .from("users")
+                .select("email, full_name")
+                .eq("firebase_uid", sanitizedData.assigned_to)
+                .single();
+            
+            if (engineerError) {
+                console.error("Error fetching engineer data:", engineerError);
+            }
+            
+            if (engineerData?.email) {
+                await sendTicketVerification(data, engineerData.email, engineerData.full_name);
+            }
+        } catch (engineerEmailError) {
+            console.error("Failed to send ticket assignment email to engineer:", engineerEmailError);
         }
-    } catch (emailError) {
-        // Log email error but don't fail the ticket creation
-        console.error("Failed to send ticket verification email:", emailError);
     }
 
     // Create in-app notification
@@ -270,6 +275,35 @@ export async function acceptTicketAction(idToken: string, ticketId: string, curr
         resourceId: ticketId,
     });
     revalidatePath("/", "layout");
+
+    // Notify the assignee (the accepter) that they have accepted the ticket
+    try {
+        await createNotificationAction(
+            uid,
+            "ticket_accepted",
+            "Ticket Accepted",
+            `You have accepted ticket "${data.title}".`,
+            data.id
+        );
+    } catch (notifError) {
+        console.error("Failed to create acceptance notification:", notifError);
+    }
+
+    // Send email notification
+    try {
+        const { data: userData, error: userError } = await supabase
+            .from("users")
+            .select("email, full_name")
+            .eq("firebase_uid", uid)
+            .single();
+
+        if (!userError && userData?.email) {
+            await sendTicketVerification(data, userData.email, userData.full_name);
+        }
+    } catch (emailError) {
+        console.error("Failed to send acceptance email:", emailError);
+    }
+
     return data;
 }
 
@@ -331,6 +365,35 @@ export async function resolveTicketAction(idToken: string, ticketId: string, cur
         resourceId: ticketId,
     });
     revalidatePath("/", "layout");
+
+    // Notify the assignee that their ticket has been resolved
+    try {
+        await createNotificationAction(
+            uid,
+            "ticket_resolved",
+            "Ticket Resolved",
+            `You have resolved ticket "${data.title}".`,
+            data.id
+        );
+    } catch (notifError) {
+        console.error("Failed to create resolution notification:", notifError);
+    }
+
+    // Send email notification
+    try {
+        const { data: userData, error: userError } = await supabase
+            .from("users")
+            .select("email, full_name")
+            .eq("firebase_uid", uid)
+            .single();
+
+        if (!userError && userData?.email) {
+            await sendTicketVerification(data, userData.email, userData.full_name);
+        }
+    } catch (emailError) {
+        console.error("Failed to send resolution email:", emailError);
+    }
+
     return data;
 }
 
@@ -371,6 +434,35 @@ export async function escalateTicketAction(idToken: string, ticketId: string, cu
         resourceId: ticketId,
     });
     revalidatePath("/", "layout");
+
+    // Notify the assignee that their ticket has been escalated
+    try {
+        await createNotificationAction(
+            uid,
+            "ticket_escalated",
+            "Ticket Escalated",
+            `You have escalated ticket "${data.title}".`,
+            data.id
+        );
+    } catch (notifError) {
+        console.error("Failed to create escalation notification:", notifError);
+    }
+
+    // Send email notification
+    try {
+        const { data: userData, error: userError } = await supabase
+            .from("users")
+            .select("email, full_name")
+            .eq("firebase_uid", uid)
+            .single();
+
+        if (!userError && userData?.email) {
+            await sendTicketVerification(data, userData.email, userData.full_name);
+        }
+    } catch (emailError) {
+        console.error("Failed to send escalation email:", emailError);
+    }
+
     return data;
 }
 
@@ -401,6 +493,35 @@ export async function markInProgressAction(idToken: string, ticketId: string, cu
         throw new Error("Failed to start work. The ticket may have been updated elsewhere.");
     }
     revalidatePath("/", "layout");
+
+    // Notify the assignee that their ticket is now in progress
+    try {
+        await createNotificationAction(
+            uid,
+            "ticket_in_progress",
+            "Ticket In Progress",
+            `You have started work on ticket "${data.title}".`,
+            data.id
+        );
+    } catch (notifError) {
+        console.error("Failed to create in-progress notification:", notifError);
+    }
+
+    // Send email notification
+    try {
+        const { data: userData, error: userError } = await supabase
+            .from("users")
+            .select("email, full_name")
+            .eq("firebase_uid", uid)
+            .single();
+
+        if (!userError && userData?.email) {
+            await sendTicketVerification(data, userData.email, userData.full_name);
+        }
+    } catch (emailError) {
+        console.error("Failed to send in-progress email:", emailError);
+    }
+
     return data;
 }
 
@@ -436,6 +557,22 @@ export async function adminCloseTicketAction(idToken: string, ticketId: string, 
         resourceId: ticketId,
     });
     revalidatePath("/", "layout");
+
+    // Notify the assignee (if any) that the admin has closed the ticket
+    if (data.assigned_to) {
+        try {
+            await createNotificationAction(
+                data.assigned_to,
+                "ticket_closed",
+                "Ticket Closed",
+                `Ticket "${data.title}" has been closed by an administrator.`,
+                data.id
+            );
+        } catch (notifError) {
+            console.error("Failed to create close notification:", notifError);
+        }
+    }
+
     return data;
 }
 
@@ -498,6 +635,21 @@ export async function assignTicketToEmployeeAction(idToken: string, ticketId: st
         console.error("Failed to create assignment notification:", notifError);
     }
 
+    // Send email notification to assigned employee
+    try {
+        const { data: employeeData, error: employeeError } = await supabase
+            .from("users")
+            .select("email, full_name")
+            .eq("firebase_uid", employeeUid)
+            .single();
+
+        if (!employeeError && employeeData?.email) {
+            await sendTicketVerification(data, employeeData.email, employeeData.full_name);
+        }
+    } catch (emailError) {
+        console.error("Failed to send assignment email:", emailError);
+    }
+
     return data;
 }
 
@@ -533,6 +685,39 @@ export async function adminReleaseTicketAction(idToken: string, ticketId: string
         resourceId: ticketId,
     });
     revalidatePath("/", "layout");
+
+    // Notify the previous assignee (if any) that their ticket has been released
+    if (data.assigned_to) {
+        try {
+            await createNotificationAction(
+                data.assigned_to,
+                "ticket_released",
+                "Ticket Released",
+                `Ticket "${data.title}" has been released back to the open pool.`,
+                data.id
+            );
+        } catch (notifError) {
+            console.error("Failed to create release notification:", notifError);
+        }
+    }
+
+    // Send email notification to previous assignee (if any)
+    if (data.assigned_to) {
+        try {
+            const { data: assigneeData, error: assigneeError } = await supabase
+                .from("users")
+                .select("email, full_name")
+                .eq("firebase_uid", data.assigned_to)
+                .single();
+
+            if (!assigneeError && assigneeData?.email) {
+                await sendTicketVerification(data, assigneeData.email, assigneeData.full_name);
+            }
+        } catch (emailError) {
+            console.error("Failed to send release email:", emailError);
+        }
+    }
+
     return data;
 }
 
@@ -565,7 +750,7 @@ export async function checkInAction(idToken: string, ticketId: string, currentVe
     if (checkInError) throw checkInError;
 
     // 2. Attempt to update ticket status to in_progress if it's currently assigned
-    const { data: ticket } = await supabase
+    const { data: ticket, error: ticketError } = await supabase
         .from("tickets")
         .update({
             status: "in_progress",
@@ -578,6 +763,11 @@ export async function checkInAction(idToken: string, ticketId: string, currentVe
         .select()
         .maybeSingle();
 
+    if (ticketError) throw ticketError;
+    if (!ticket) {
+        throw new Error("Failed to update ticket. It may have been updated elsewhere.");
+    }
+
     await logAuditEvent({
         actorUid: uid,
         action: "ticket.check_in",
@@ -586,7 +776,50 @@ export async function checkInAction(idToken: string, ticketId: string, currentVe
         metadata: { latitude, longitude },
     });
     revalidatePath("/", "layout");
-    
-    return { success: true, checkIn, ticket: ticket || null };
+
+    // Notify the assignee that someone has checked in at their ticket location
+    if (ticket) {
+        try {
+            await createNotificationAction(
+                ticket.assigned_to,
+                "ticket_check_in",
+                "Check-in at Ticket Location",
+                `Someone has checked in at the location for ticket "${ticket.title}".`,
+                ticket.id
+            );
+        } catch (notifError) {
+            console.error("Failed to create check-in notification:", notifError);
+        }
+    }
+
+    // Send email notification to assignee (if any)
+    if (ticket && ticket.assigned_to) {
+        try {
+            const { data: assigneeData, error: assigneeError } = await supabase
+                .from("users")
+                .select("email, full_name")
+                .eq("firebase_uid", ticket.assigned_to)
+                .single();
+
+            if (!assigneeError && assigneeData?.email) {
+                // For check-in, we might want to send a different email template
+                // But for now, we'll use the same ticket verification email
+                await sendTicketVerification(ticket, assigneeData.email, assigneeData.full_name);
+            }
+        } catch (emailError) {
+            console.error("Failed to send check-in email:", emailError);
+        }
+    }
+
+    // Fetch the latest ticket state after check-in
+    const { data: updatedTicket, error: fetchError } = await supabase
+        .from("tickets")
+        .select("*, check_ins(*)")
+        .eq("id", ticketId)
+        .single();
+
+    if (fetchError) throw fetchError;
+
+    return { success: true, checkIn, ticket: updatedTicket };
 }
 

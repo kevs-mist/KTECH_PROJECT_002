@@ -2,6 +2,12 @@
  * Centralized Error Handler Utility for Prime Services CRM
  * Translates technical error codes (Firebase & PostgreSQL) into friendly, action-oriented notifications.
  */
+
+interface ErrorWithCode {
+    code?: string;
+    message?: string;
+}
+
 export class ErrorHandler {
     /**
      * Map Firebase Auth codes to friendly messages
@@ -24,7 +30,7 @@ export class ErrorHandler {
     /**
      * Parse and format any error into a friendly string
      */
-    public static format(err: any, fallbackMessage: string = "An unexpected error occurred. Please try again."): string {
+    public static format(err: ErrorWithCode | string | Error | unknown | null | undefined, fallbackMessage: string = "An unexpected error occurred. Please try again."): string {
         if (!err) return fallbackMessage;
 
         // 1. Handle string errors
@@ -32,50 +38,58 @@ export class ErrorHandler {
             return this.cleanMessage(err);
         }
 
-        // 2. Handle Firebase Auth errors (contain .code or .message with firebase patterns)
-        const code = err.code || err.message;
-        if (code && typeof code === "string") {
-            // Check exact key match in our firebase mapping
-            const cleanCode = code.replace("auth/", "");
-            const mapped = this.firebaseAuthMap[code] || this.firebaseAuthMap[`auth/${cleanCode}`];
-            if (mapped) return mapped;
-
-            // Check if string contains Firebase codes inside it
-            for (const [key, msg] of Object.entries(this.firebaseAuthMap)) {
-                if (code.toLowerCase().includes(key.toLowerCase()) || code.toLowerCase().includes(key.replace("auth/", "").toLowerCase())) {
-                    return msg;
-                }
-            }
+        // 2. Handle Error objects
+        if (err instanceof Error) {
+            return this.cleanMessage(err.message);
         }
 
-        // 3. Handle Supabase DB / Postgres errors
-        const errMsg = err.message || "";
-        if (errMsg && typeof errMsg === "string") {
-            // Connection errors
-            if (errMsg.includes("Failed to fetch") || errMsg.includes("NetworkError")) {
-                return "Network error: Unable to connect to our servers. Please check your connection.";
+        // 3. Handle unknown types - try to extract message
+        if (typeof err === "object" && err !== null) {
+            const objErr = err as Record<string, unknown>;
+            const code = objErr.code;
+            const message = objErr.message;
+            
+            if (code && typeof code === "string") {
+                // Check exact key match in our firebase mapping
+                const cleanCode = code.replace("auth/", "");
+                const mapped = this.firebaseAuthMap[code] || this.firebaseAuthMap[`auth/${cleanCode}`];
+                if (mapped) return mapped;
+
+                // Check if string contains Firebase codes inside it
+                for (const [key, msg] of Object.entries(this.firebaseAuthMap)) {
+                    if (code.toLowerCase().includes(key.toLowerCase()) || code.toLowerCase().includes(key.replace("auth/", "").toLowerCase())) {
+                        return msg;
+                    }
+                }
             }
 
-            // Database constraint errors
-            if (errMsg.includes("violates unique constraint") || errMsg.includes("duplicate key")) {
-                return "This record already exists in our system. Please use a unique identifier.";
-            }
-            if (errMsg.includes("violates foreign key constraint")) {
-                return "The referenced related record was not found.";
-            }
-            if (errMsg.includes("violates check constraint")) {
-                return "The values provided do not meet the system requirements.";
-            }
-            if (errMsg.includes("violates not-null constraint") || errMsg.includes("null value in column")) {
-                return "Please complete all required fields.";
-            }
+            if (message && typeof message === "string") {
+                // Connection errors
+                if (message.includes("Failed to fetch") || message.includes("NetworkError")) {
+                    return "Network error: Unable to connect to our servers. Please check your connection.";
+                }
 
-            // Optimistic lock errors
-            if (errMsg.includes("updated elsewhere") || errMsg.includes("version check failed")) {
-                return "This ticket was modified by another engineer or administrator. Refreshing page to get latest updates...";
-            }
+                // Database constraint errors
+                if (message.includes("violates unique constraint") || message.includes("duplicate key")) {
+                    return "This record already exists in our system. Please use a unique identifier.";
+                }
+                if (message.includes("violates foreign key constraint")) {
+                    return "The referenced related record was not found.";
+                }
+                if (message.includes("violates check constraint")) {
+                    return "The values provided do not meet the system requirements.";
+                }
+                if (message.includes("violates not-null constraint") || message.includes("null value in column")) {
+                    return "Please complete all required fields.";
+                }
 
-            return this.cleanMessage(errMsg);
+                // Optimistic lock errors
+                if (message.includes("updated elsewhere") || message.includes("version check failed")) {
+                    return "This ticket was modified by another engineer or administrator. Refreshing page to get latest updates...";
+                }
+
+                return this.cleanMessage(message);
+            }
         }
 
         return fallbackMessage;

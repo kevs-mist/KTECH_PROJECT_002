@@ -1,9 +1,4 @@
 import { NextResponse } from "next/server";
-import { 
-  getNotificationsAction, 
-  markNotificationReadAction, 
-  markAllNotificationsReadAction 
-} from "../../src/lib/actions/notificationActions";
 import {
   assertSameOrigin,
   checkRateLimit,
@@ -11,20 +6,20 @@ import {
   getClientIp,
   jsonError,
   rateLimitResponse,
+  verifyRequestUser,
 } from "../../src/lib/server/apiSecurity";
-
-function getErrorMessage(error: unknown) {
-  return error instanceof Error ? error.message : "Notification request failed";
-}
-
-function requireToken(request: Request) {
-  const token = getBearerToken(request);
-  if (!token) throw new Error("Unauthorized: Please log in again.");
-  return token;
-}
+import {
+  getNotificationsAction,
+  markNotificationReadAction,
+  markAllNotificationsReadAction,
+} from "../../src/lib/actions/notificationActions";
 
 export async function GET(request: Request) {
   try {
+    if (request.method !== "GET") {
+      return NextResponse.json({ error: "Method not allowed" }, { status: 405 });
+    }
+
     const limit = checkRateLimit({
       key: `notifications:get:${getClientIp(request)}`,
       limit: 60,
@@ -32,17 +27,30 @@ export async function GET(request: Request) {
     });
     if (!limit.success) return rateLimitResponse(limit.resetAt);
 
-    const token = requireToken(request);
+    const token = getBearerToken(request);
+    if (!token) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const user = await verifyRequestUser(token);
+
     return NextResponse.json(await getNotificationsAction(token));
   } catch (error: unknown) {
-    const message = getErrorMessage(error);
-    const status = message.toLowerCase().includes("unauthorized") ? 401 : 500;
+    const message = error instanceof Error ? error.message : "Notification request failed";
+    const status = message.toLowerCase().includes("unauthorized")
+      ? 401
+      : message.toLowerCase().includes("forbidden")
+        ? 403
+        : 500;
     return NextResponse.json({ error: message }, { status });
   }
 }
 
 export async function PATCH(request: Request) {
   try {
+    if (request.method !== "PATCH") {
+      return NextResponse.json({ error: "Method not allowed" }, { status: 405 });
+    }
+
     assertSameOrigin(request);
 
     const limit = checkRateLimit({
@@ -52,9 +60,13 @@ export async function PATCH(request: Request) {
     });
     if (!limit.success) return rateLimitResponse(limit.resetAt);
 
-    const token = requireToken(request);
-    const body = await request.json();
+    const token = getBearerToken(request);
+    if (!token) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const user = await verifyRequestUser(token);
 
+    const body = await request.json();
     if (body.action === "mark_read" && body.notificationId) {
       await markNotificationReadAction(token, body.notificationId);
       return NextResponse.json({ success: true });
@@ -65,8 +77,12 @@ export async function PATCH(request: Request) {
 
     return NextResponse.json({ error: "Unknown action" }, { status: 400 });
   } catch (error: unknown) {
-    const message = getErrorMessage(error);
-    const status = message.toLowerCase().includes("unauthorized") ? 401 : 500;
+    const message = error instanceof Error ? error.message : "Notification request failed";
+    const status = message.toLowerCase().includes("unauthorized")
+      ? 401
+      : message.toLowerCase().includes("forbidden")
+        ? 403
+        : 500;
     return NextResponse.json({ error: message }, { status });
   }
 }

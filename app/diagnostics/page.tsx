@@ -7,6 +7,8 @@ import { supabase } from "../src/lib/supabase";
 import { parseJsonResponse } from "../src/lib/apiClient";
 import AdminRoute from "../src/components/Routes/Admin_route";
 
+export const dynamic = 'force-dynamic';
+
 type AuthDiagnostics = Record<string, unknown>;
 
 /**
@@ -84,11 +86,11 @@ function ConnectionDiagnostics() {
     };
 
     return (
-        <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
-            <div className="bg-white p-8 rounded-2xl shadow-xl max-w-lg w-full border border-slate-200">
-                <header className="mb-8 border-b border-slate-100 pb-4">
-                    <h1 className="text-2xl font-bold text-slate-800">System Diagnostics</h1>
-                    <p className="text-slate-500 text-sm">Validating configuration and connectivity...</p>
+        <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4 safe-top">
+            <div className="bg-white p-6 md:p-8 rounded-2xl shadow-xl max-w-lg w-full border border-slate-200">
+                <header className="mb-6 md:mb-8 border-b border-slate-100 pb-4">
+                    <h1 className="text-xl md:text-2xl font-bold text-slate-800">System Diagnostics</h1>
+                    <p className="text-slate-500 text-xs md:text-sm">Validating configuration and connectivity...</p>
                 </header>
 
                 <div className="space-y-6">

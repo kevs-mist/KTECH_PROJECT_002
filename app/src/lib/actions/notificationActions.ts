@@ -91,7 +91,7 @@ export async function markAllNotificationsReadAction(idToken: string) {
  */
 export async function createNotificationAction(
   recipientId: string,
-  type: "ticket_assigned" | "ticket_open_pool" | "ticket_updated",
+  type: "ticket_assigned" | "ticket_open_pool" | "ticket_updated" | "ticket_accepted" | "ticket_resolved" | "ticket_escalated" | "ticket_in_progress" | "ticket_closed" | "ticket_released" | "ticket_check_in",
   title: string,
   message: string,
   ticketId?: string

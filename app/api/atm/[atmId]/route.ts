@@ -1,17 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "../../../../utils/supabase/admin";
 import {
-    checkRateLimit,
-    getClientIp,
-    jsonError,
-    rateLimitResponse,
-    requireVerifiedUser,
+  checkRateLimit,
+  getClientIp,
+  jsonError,
+  rateLimitResponse,
+  verifyRequestUser,
 } from "../../../src/lib/server/apiSecurity";
 
- export const dynamic = 'force-dynamic';
+export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest, context: { params: Promise<{ atmId: string }> }) {
   try {
+    if (request.method !== "GET") {
+      return NextResponse.json({ error: "Method not allowed" }, { status: 405 });
+    }
+
     const limit = checkRateLimit({
       key: `atm:detail:${getClientIp(request)}`,
       limit: 120,
@@ -19,10 +23,13 @@ export async function GET(request: NextRequest, context: { params: Promise<{ atm
     });
     if (!limit.success) return rateLimitResponse(limit.resetAt);
 
-    await requireVerifiedUser(request);
+    const user = await verifyRequestUser(request);
+    if (user.role !== "employee") {
+      return NextResponse.json({ error: "Forbidden: Employee access required" }, { status: 403 });
+    }
+
     const { atmId } = await context.params;
     const supabase = createAdminClient();
-
     const { data: atm, error } = await supabase
       .from("atm_locations")
       .select("*")

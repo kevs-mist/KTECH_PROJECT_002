@@ -145,23 +145,27 @@ export default function DataImportModal({ isOpen, onClose, onSuccess }: DataImpo
     };
 
     return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in duration-300" style={{ background: 'rgba(0, 0, 0, 0.6)' }}>
-            <div className="w-full max-w-2xl rounded-[2rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}>
+        <div className="fixed inset-0 z-[100] flex items-end md:items-center justify-center backdrop-blur-sm animate-in fade-in duration-300" style={{ background: 'rgba(0, 0, 0, 0.6)' }}>
+            <div className="w-full max-w-2xl md:rounded-[2rem] shadow-2xl overflow-hidden animate-in slide-in-from-bottom-10 md:zoom-in-95 duration-300 h-[calc(100vh-80px)] md:h-auto md:max-h-[90vh] flex flex-col" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}>
+                {/* Drag Handle for Mobile */}
+                <div className="md:hidden flex justify-center pt-3 pb-1 shrink-0">
+                    <div className="w-8 h-1 rounded-full" style={{ background: 'var(--border-subtle)' }}></div>
+                </div>
                 {/* Header */}
-                <div className="px-8 py-6 flex justify-between items-center" style={{ borderBottom: '1px solid var(--border-subtle)' }}>
+                <div className="px-4 md:px-8 py-4 md:py-6 flex justify-between items-center shrink-0" style={{ borderBottom: '1px solid var(--border-subtle)' }}>
                     <div>
-                        <h2 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>Import ATM Data</h2>
+                        <h2 className="text-lg md:text-xl font-bold" style={{ color: 'var(--text-primary)' }}>Import ATM Data</h2>
                         <p className="text-xs uppercase tracking-widest font-bold mt-1" style={{ color: 'var(--text-tertiary)' }}>Upload Excel (.xlsx)</p>
                     </div>
-                    <button onClick={() => { handleReset(); onClose(); }} className="transition-colors" style={{ color: 'var(--text-tertiary)' }}>
-                        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <button onClick={() => { handleReset(); onClose(); }} className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center transition-colors rounded-full" style={{ color: 'var(--text-tertiary)', background: 'var(--bg-elevated)' }}>
+                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
                         </svg>
                     </button>
                 </div>
 
                 {/* Body */}
-                <div className="p-8 space-y-5 max-h-[70vh] overflow-y-auto custom-scrollbar">
+                <div className="flex-1 overflow-y-auto p-4 md:p-8 space-y-5 pb-32 md:pb-8 custom-scrollbar">
                     {/* Error */}
                     {error && (
                         <div className="p-4 text-xs rounded-xl flex items-center gap-2" style={{ background: 'var(--error-soft)', border: '1px solid var(--error)', color: 'var(--error)' }}>
@@ -267,11 +271,11 @@ export default function DataImportModal({ isOpen, onClose, onSuccess }: DataImpo
                 </div>
 
                 {/* Footer */}
-                <div className="px-8 py-5 flex gap-3" style={{ borderTop: '1px solid var(--border-subtle)' }}>
+                <div className="fixed bottom-0 left-0 right-0 md:static px-4 pb-4 md:px-8 md:pb-5 pt-4 flex gap-3 safe-bottom shrink-0" style={{ borderTop: '1px solid var(--border-subtle)', background: 'var(--bg-surface)' }}>
                     <button
                         type="button"
                         onClick={() => { handleReset(); onClose(); }}
-                        className="flex-1 px-6 py-3.5 rounded-xl text-xs font-bold transition-all" style={{ color: 'var(--text-tertiary)', background: 'var(--bg-elevated)' }}
+                        className="flex-1 px-6 py-4 min-h-[52px] rounded-xl text-xs font-bold transition-all" style={{ color: 'var(--text-tertiary)', background: 'var(--bg-elevated)' }}
                     >
                         {result ? "Close" : "Cancel"}
                     </button>
@@ -279,7 +283,7 @@ export default function DataImportModal({ isOpen, onClose, onSuccess }: DataImpo
                         <button
                             onClick={handleUpload}
                             disabled={isUploading || previewData.length === 0}
-                            className="flex-[2] px-6 py-3.5 rounded-xl text-xs font-bold transition-all disabled:opacity-50 flex items-center justify-center gap-2" style={{ color: 'white', background: 'var(--success)' }}
+                            className="flex-[2] px-6 py-4 min-h-[52px] rounded-xl text-xs font-bold transition-all disabled:opacity-50 flex items-center justify-center gap-2" style={{ color: 'white', background: 'var(--success)' }}
                         >
                             {isUploading ? (
                                 <>

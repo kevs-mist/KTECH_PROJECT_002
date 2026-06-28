@@ -32,6 +32,15 @@ export default function ResetPasswordPage() {
         return parseJsonResponse<{ success: boolean; link?: string }>(response, "/api/auth/password-reset-link");
     };
 
+    const sendAlternativeEmail = async (targetEmail: string, resetLink: string) => {
+        const response = await fetch("/api/auth/password-reset-email", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email: targetEmail, resetLink }),
+        });
+        return parseJsonResponse<{ success: boolean }>(response, "/api/auth/password-reset-email");
+    };
+
     // Detect if we arrived via a password reset link
     useEffect(() => {
         if (typeof window !== "undefined") {
@@ -89,7 +98,19 @@ export default function ResetPasswordPage() {
                 console.error("Error message:", err.message);
             }
             
-            // 3. Fallback to Server Action if client-side failed in dev mode
+            // 3. Fallback to alternative email service (Resend) if Firebase fails
+            try {
+                const resetUrl = typeof window !== "undefined" ? `${window.location.origin}/reset-password` : "http://localhost:3000/reset-password";
+                const altRes = await sendAlternativeEmail(email.trim(), resetUrl);
+                if (altRes.success) {
+                    setMessage({ type: "success", text: "Password reset link sent via alternative email service. Please check your inbox." });
+                    return;
+                }
+            } catch (altErr: unknown) {
+                console.error("Alternative email service failed:", altErr);
+            }
+            
+            // 4. Fallback to Server Action if client-side failed in dev mode
             if (process.env.NODE_ENV === "development") {
                 try {
                     const res = await generateDevResetLink(email.trim());
@@ -103,7 +124,7 @@ export default function ResetPasswordPage() {
                 }
             }
 
-            setMessage({ type: "error", text: ErrorHandler.format(err, "Failed to send reset email.") });
+            setMessage({ type: "error", text: ErrorHandler.format(err, "Failed to send reset email. Please try again later.") });
         } finally {
             setIsLoading(false);
         }
@@ -146,11 +167,11 @@ export default function ResetPasswordPage() {
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center p-4" style={{ background: 'var(--bg-base)' }}>
-            <div className="p-8 md:p-10 rounded-2xl shadow-xl max-w-md w-full" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}>
-                <div className="mb-8 text-center">
-                    <h1 className="text-3xl font-black tracking-tight" style={{ color: 'var(--text-primary)' }}>Access <span style={{ color: 'var(--accent)' }}>Recovery</span></h1>
-                    <p className="text-sm mt-2 font-medium" style={{ color: 'var(--text-secondary)' }}>
+        <div className="min-h-screen flex items-center justify-center p-4 safe-top" style={{ background: 'var(--bg-base)' }}>
+            <div className="p-6 md:p-8 md:p-10 rounded-2xl shadow-xl max-w-md w-full" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}>
+                <div className="mb-6 md:mb-8 text-center">
+                    <h1 className="text-2xl md:text-3xl font-black tracking-tight" style={{ color: 'var(--text-primary)' }}>Access <span style={{ color: 'var(--accent)' }}>Recovery</span></h1>
+                    <p className="text-xs md:text-sm mt-2 font-medium" style={{ color: 'var(--text-secondary)' }}>
                         {mode === "send_link" ? "Verify your email to reset your credentials" : `Create a new password for ${email || "your account"}`}
                     </p>
                 </div>
@@ -170,9 +191,9 @@ export default function ResetPasswordPage() {
                     <div className="mb-6 p-4 rounded-xl text-xs" style={{ background: 'var(--warning-soft)', borderLeft: '4px solid var(--warning)', color: 'var(--text-primary)' }}>
                         <span className="font-semibold uppercase tracking-widest block text-[9px] mb-1" style={{ color: 'var(--warning)' }}>🛠️ Developer Bypass:</span>
                         <p className="mb-2">Firebase emails might be delayed or blocked on localhost. Click below to reset immediately:</p>
-                        <a 
-                            href={devLink} 
-                            className="inline-block font-semibold px-3 py-1.5 rounded-lg transition-colors uppercase tracking-widest text-[9px]"
+                        <a
+                            href={devLink}
+                            className="inline-block font-semibold px-3 py-1.5 min-h-[44px] rounded-lg transition-colors uppercase tracking-widest text-[9px]"
                             style={{ background: 'var(--warning)', color: 'white' }}
                         >
                             Reset Password Now 🔑
@@ -189,7 +210,7 @@ export default function ResetPasswordPage() {
                                 type="email"
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
-                                className="px-4 py-3 rounded-lg outline-none transition-all text-sm"
+                                className="px-4 py-3 min-h-[48px] rounded-lg outline-none transition-all text-sm"
                                 style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
                                 placeholder="name@prime.com"
                                 required
@@ -200,7 +221,7 @@ export default function ResetPasswordPage() {
                         <button
                             type="submit"
                             disabled={isLoading}
-                            className="w-full py-3.5 rounded-xl font-semibold shadow-lg transition-all transform active:scale-95"
+                            className="w-full py-4 min-h-[52px] rounded-xl font-semibold shadow-lg active:scale-95 transition-transform"
                             style={{
                                 color: 'white',
                                 background: isLoading ? 'var(--text-tertiary)' : 'var(--accent)',
@@ -219,7 +240,7 @@ export default function ResetPasswordPage() {
                                 type="password"
                                 value={newPassword}
                                 onChange={(e) => setNewPassword(e.target.value)}
-                                className="px-4 py-3 rounded-lg outline-none transition-all text-sm"
+                                className="px-4 py-3 min-h-[48px] rounded-lg outline-none transition-all text-sm"
                                 style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
                                 placeholder="••••••••"
                                 required
@@ -233,7 +254,7 @@ export default function ResetPasswordPage() {
                                 type="password"
                                 value={confirmNewPassword}
                                 onChange={(e) => setConfirmNewPassword(e.target.value)}
-                                className="px-4 py-3 rounded-lg outline-none transition-all text-sm"
+                                className="px-4 py-3 min-h-[48px] rounded-lg outline-none transition-all text-sm"
                                 style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
                                 placeholder="••••••••"
                                 required
@@ -244,7 +265,7 @@ export default function ResetPasswordPage() {
                         <button
                             type="submit"
                             disabled={isLoading}
-                            className="w-full py-3.5 rounded-xl font-semibold shadow-lg transition-all transform active:scale-95"
+                            className="w-full py-4 min-h-[52px] rounded-xl font-semibold shadow-lg active:scale-95 transition-transform"
                             style={{
                                 color: 'white',
                                 background: isLoading ? 'var(--text-tertiary)' : 'var(--accent)',
@@ -257,7 +278,7 @@ export default function ResetPasswordPage() {
                 )}
 
                 <div className="text-center pt-6 mt-6" style={{ borderTop: '1px solid var(--border-subtle)' }}>
-                    <a href="/login" className="text-xs font-semibold uppercase tracking-widest transition-colors" style={{ color: 'var(--text-tertiary)' }}>Return to Login</a>
+                    <a href="/login" className="text-xs font-semibold uppercase tracking-widest transition-colors py-2 min-h-[44px] inline-block" style={{ color: 'var(--text-tertiary)' }}>Return to Login</a>
                 </div>
             </div>
         </div>

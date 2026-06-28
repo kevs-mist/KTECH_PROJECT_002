@@ -26,8 +26,8 @@ if (missingEnvVars.length > 0) {
 let app: FirebaseApp;
 try {
     app = getApps().length ? getApp() : initializeApp(firebaseConfig);
-} catch (err: any) {
-    console.error("Firebase Auth Init Failed:", err?.message ?? err);
+} catch (err: unknown) {
+    console.error("Firebase Auth Init Failed:", err instanceof Error ? err.message : String(err));
     if (getApps().length) {
         app = getApp();
     } else {
@@ -40,8 +40,8 @@ try {
 const auth: Auth = (() => {
     try {
         return getAuth(app);
-    } catch (e: any) {
-        console.warn("🛡️ Auth Service Offline:", e?.message ?? e);
+    } catch (e: unknown) {
+        console.warn("🛡️ Auth Service Offline:", e instanceof Error ? e.message : String(e));
         return {} as Auth; // Type-safe placeholder
     }
 })();

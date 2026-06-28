@@ -18,6 +18,23 @@ export default function AdminSidebar() {
   const router = useRouter();
   const [isCollapsed, setIsCollapsed] = useState(false);
 
+  // Auto-collapse on tablet (md), expand on desktop (lg)
+  React.useEffect(() => {
+    const handleResize = () => {
+      if (typeof window !== 'undefined') {
+        if (window.innerWidth >= 1024) {
+          setIsCollapsed(false);
+        } else if (window.innerWidth >= 768) {
+          setIsCollapsed(true);
+        }
+      }
+    };
+
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   const handleLogout = async () => {
     await logout();
     router.push("/login");
@@ -46,7 +63,7 @@ export default function AdminSidebar() {
 
   return (
     <aside
-      className={`sticky top-0 h-screen transition-all duration-300 z-50 shrink-0 relative flex flex-col ${
+      className={`hidden md:flex sticky top-0 h-screen transition-all duration-300 z-50 shrink-0 relative flex-col ${
         isCollapsed ? "w-20" : "w-72"
       }`}
       style={{ background: 'var(--bg-surface)', borderRight: '1px solid var(--border)' }}
@@ -54,7 +71,7 @@ export default function AdminSidebar() {
       {/* Logo */}
       <div className="h-20 flex items-center justify-center" style={{ borderBottom: '1px solid var(--border)' }}>
         <Link href="/admin/dashboard" className="flex items-center gap-3 group">
-          <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 transition-all duration-300 group-hover:scale-105" style={{ background: 'var(--accent)' }}>
+          <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 transition-all duration-300" style={{ background: 'var(--accent)' }}>
             <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
             </svg>

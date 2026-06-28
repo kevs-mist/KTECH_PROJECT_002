@@ -14,31 +14,31 @@ export default function GlobalError({
     }, [error]);
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-slate-900 text-white p-6 font-sans">
-            <div className="relative max-w-md w-full bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 p-8 rounded-3xl shadow-2xl text-center overflow-hidden">
+        <div className="min-h-screen flex items-center justify-center bg-slate-900 text-white p-4 font-sans safe-top">
+            <div className="relative max-w-md w-full bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 p-6 md:p-8 rounded-3xl shadow-2xl text-center overflow-hidden">
                 <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-red-500 via-rose-600 to-red-500"></div>
-                
-                <div className="w-16 h-16 bg-red-500/10 text-red-500 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-inner">
-                    <svg className="w-8 h-8 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+
+                <div className="w-14 h-14 md:w-16 md:h-16 bg-red-500/10 text-red-500 rounded-2xl flex items-center justify-center mx-auto mb-4 md:mb-6 shadow-inner">
+                    <svg className="w-7 h-7 md:w-8 md:h-8 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                     </svg>
                 </div>
 
-                <h1 className="text-2xl font-black uppercase tracking-tight italic mb-3">System Anomalous</h1>
-                <p className="text-slate-400 text-sm mb-8 leading-relaxed font-medium">
+                <h1 className="text-xl md:text-2xl font-black uppercase tracking-tight italic mb-2 md:mb-3">System Anomalous</h1>
+                <p className="text-slate-400 text-xs md:text-sm mb-6 md:mb-8 leading-relaxed font-medium">
                     An unexpected runtime event occurred. The systems operations brief has logged this incident automatically.
                 </p>
 
                 <div className="space-y-4">
                     <button
                         onClick={() => reset()}
-                        className="w-full py-3.5 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white font-black uppercase tracking-widest text-[10px] rounded-xl transition-all shadow-lg shadow-red-900/20 active:scale-95"
+                        className="w-full py-4 min-h-[52px] bg-gradient-to-r from-red-600 to-rose-600 text-white font-black uppercase tracking-widest text-[10px] rounded-xl shadow-lg shadow-red-900/20 active:scale-95 transition-transform"
                     >
                         Re-initialize System
                     </button>
                     <a
                         href="/login"
-                        className="block w-full py-3 text-slate-400 hover:text-white font-bold uppercase tracking-widest text-[10px] transition-colors"
+                        className="block w-full py-4 min-h-[52px] text-slate-400 font-bold uppercase tracking-widest text-[10px] transition-colors"
                     >
                         Return to Control Portal
                     </a>

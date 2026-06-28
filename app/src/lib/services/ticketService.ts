@@ -31,13 +31,41 @@ interface AdminStats {
     escalated: number;
 }
 
+// Client-side token cache to reduce Firebase Auth API calls
+let cachedToken: string | null = null;
+let tokenExpiry: number = 0;
+const TOKEN_CACHE_DURATION = 55 * 60 * 1000; // 55 minutes (Firebase tokens last 1 hour)
+
 export const ticketService = {
     async getIdToken() {
-        // Use cached token (false) to avoid hitting Firebase auth quota.
-        // Firebase SDK auto-refreshes when the token is actually expired.
-        const token = await auth.currentUser?.getIdToken(false);
-        if (!token) throw new Error("Unauthorized: Please log in again.");
-        return token;
+        // Check if we have a valid cached token
+        const now = Date.now();
+        if (cachedToken && tokenExpiry > now) {
+            return cachedToken;
+        }
+
+        // Force refresh only if cache is expired
+        const forceRefresh = !cachedToken || tokenExpiry <= now;
+        
+        try {
+            const token = await auth.currentUser?.getIdToken(forceRefresh);
+            if (!token) throw new Error("Unauthorized: Please log in again.");
+            
+            // Cache the token
+            cachedToken = token;
+            tokenExpiry = now + TOKEN_CACHE_DURATION;
+            
+            return token;
+        } catch (error: any) {
+            // Clear cache on error to force refresh on next attempt
+            cachedToken = null;
+            tokenExpiry = 0;
+            
+            if (error?.code === 'auth/quota-exceeded') {
+                throw new Error("Authentication quota exceeded. Please wait a moment and try again.");
+            }
+            throw error;
+        }
     },
 
     async request<T>(path: string, init: RequestInit = {}): Promise<T> {
